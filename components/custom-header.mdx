@@ -1,0 +1,319 @@
+---
+title: CustomHeader
+description: Simple, reusable page header component with optional description
+---
+
+## Overview
+
+The CustomHeader component provides a centered page header with a title and optional description. It's a shared component used across multiple projects for consistent page headers.
+
+**Location**: `gifs-app/src/shared/components/CustomHeader.tsx`
+
+## Props
+
+<ParamField path="title" type="string" required>
+  The main heading text displayed in an `<h1>` tag
+</ParamField>
+
+<ParamField path="description" type="string">
+  Optional description text displayed below the title in a `<p>` tag. Only rendered if provided.
+</ParamField>
+
+## Features
+
+- **Minimal Design**: Simple, focused component with no complex logic
+- **Conditional Rendering**: Description only renders when provided
+- **Centered Layout**: Uses `content-center` CSS class for alignment
+- **TypeScript Support**: Fully typed props interface
+- **Semantic HTML**: Uses proper heading hierarchy
+
+## Usage Example
+
+<Tabs>
+  <Tab title="With Description">
+    ```tsx
+    import { CustomHeader } from './components/CustomHeader';
+
+    function App() {
+      return (
+        <div>
+          <CustomHeader 
+            title="GIFs Finder"
+            description="Busca y descubre GIFs animados usando la API de Giphy"
+          />
+        </div>
+      );
+    }
+    ```
+  </Tab>
+  <Tab title="Title Only">
+    ```tsx
+    import { CustomHeader } from './components/CustomHeader';
+
+    function App() {
+      return (
+        <div>
+          <CustomHeader title="Mi Aplicación" />
+        </div>
+      );
+    }
+    ```
+  </Tab>
+</Tabs>
+
+## Implementation
+
+<CodeGroup>
+
+```tsx Full Component Source
+interface Props {
+  title: string;
+  description?: string;
+}
+
+export const CustomHeader = ({ title, description }: Props) => {
+  return (
+    <div className="content-center">
+      <h1>{title}</h1>
+      {description && <p> {description}</p>}
+    </div>
+  );
+};
+```
+
+```tsx Example Usage
+import { CustomHeader } from '../shared/components/CustomHeader';
+import { SearchBar } from '../shared/components/SearchBar';
+
+export const GifsPage = () => {
+  return (
+    <div className="page">
+      <CustomHeader 
+        title="Explorador de GIFs"
+        description="Encuentra el GIF perfecto para cualquier ocasión"
+      />
+      <SearchBar onQuery={handleSearch} />
+    </div>
+  );
+};
+```
+
+```css Styling Example
+.content-center {
+  text-align: center;
+  padding: 2rem 1rem;
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.content-center h1 {
+  font-size: 2.5rem;
+  margin-bottom: 0.5rem;
+  color: #333;
+}
+
+.content-center p {
+  font-size: 1.125rem;
+  color: #666;
+  line-height: 1.6;
+}
+```
+
+</CodeGroup>
+
+## TypeScript Interface
+
+```typescript
+interface Props {
+  title: string;        // Required: Main heading text
+  description?: string; // Optional: Subtitle/description text
+}
+```
+
+## Component Design Pattern
+
+This component demonstrates several React best practices:
+
+### 1. Conditional Rendering
+
+The description is only rendered when provided:
+
+```tsx
+{description && <p> {description}</p>}
+```
+
+This uses JavaScript's short-circuit evaluation - if `description` is falsy (undefined, null, or empty string), the `<p>` tag is not rendered.
+
+### 2. Optional Props
+
+The `?` in TypeScript makes the description prop optional:
+
+```typescript
+description?: string;
+```
+
+This allows the component to be used with or without a description.
+
+### 3. Named Export
+
+Uses named export for better tree-shaking and explicit imports:
+
+```tsx
+export const CustomHeader = ...
+```
+
+### 4. Prop Destructuring
+
+Destructures props directly in the function parameters:
+
+```tsx
+({ title, description }: Props)
+```
+
+## Common Use Cases
+
+<AccordionGroup>
+  <Accordion title="Page Headers">
+    Use as the main header for application pages:
+    
+    ```tsx
+    <CustomHeader 
+      title="Dashboard"
+      description="Welcome back! Here's your overview"
+    />
+    ```
+  </Accordion>
+
+  <Accordion title="Section Headers">
+    Use to introduce major sections without description:
+    
+    ```tsx
+    <CustomHeader title="User Settings" />
+    ```
+  </Accordion>
+
+  <Accordion title="Landing Pages">
+    Use with longer descriptions for landing pages:
+    
+    ```tsx
+    <CustomHeader 
+      title="Welcome to React Mini Projects"
+      description="A collection of simple, educational React applications demonstrating core concepts and patterns"
+    />
+    ```
+  </Accordion>
+
+  <Accordion title="Empty States">
+    Use to explain empty states in applications:
+    
+    ```tsx
+    <CustomHeader 
+      title="No Results Found"
+      description="Try adjusting your search terms"
+    />
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Customization
+
+### Styling
+
+The component uses a `content-center` CSS class, which you can customize:
+
+```css
+/* Custom theme */
+.content-center {
+  text-align: center;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  padding: 3rem 1rem;
+  border-radius: 8px;
+}
+
+.content-center h1 {
+  color: white;
+  font-weight: bold;
+}
+
+.content-center p {
+  color: rgba(255, 255, 255, 0.9);
+}
+```
+
+### Extending the Component
+
+You can extend this component with additional features:
+
+```tsx
+interface ExtendedProps extends Props {
+  icon?: React.ReactNode;
+  actions?: React.ReactNode;
+}
+
+export const ExtendedHeader = ({ 
+  title, 
+  description, 
+  icon, 
+  actions 
+}: ExtendedProps) => {
+  return (
+    <div className="content-center">
+      {icon && <div className="header-icon">{icon}</div>}
+      <h1>{title}</h1>
+      {description && <p>{description}</p>}
+      {actions && <div className="header-actions">{actions}</div>}
+    </div>
+  );
+};
+```
+
+## Testing
+
+The component has an associated test file at `CustomHeader.test.tsx:1`. Here's an example test pattern:
+
+```tsx
+import { render, screen } from '@testing-library/react';
+import { CustomHeader } from './CustomHeader';
+
+describe('CustomHeader', () => {
+  it('renders title', () => {
+    render(<CustomHeader title="Test Title" />);
+    expect(screen.getByText('Test Title')).toBeInTheDocument();
+  });
+
+  it('renders description when provided', () => {
+    render(
+      <CustomHeader 
+        title="Test" 
+        description="Test Description" 
+      />
+    );
+    expect(screen.getByText('Test Description')).toBeInTheDocument();
+  });
+
+  it('does not render description when not provided', () => {
+    render(<CustomHeader title="Test" />);
+    const description = screen.queryByRole('paragraph');
+    expect(description).not.toBeInTheDocument();
+  });
+});
+```
+
+## Related Components
+
+<CardGroup cols={2}>
+  <Card title="SearchBar" icon="magnifying-glass" href="/components/search-bar">
+    Often used directly below CustomHeader
+  </Card>
+  <Card title="Component Overview" icon="grid" href="/components/overview">
+    See all available components
+  </Card>
+</CardGroup>
+
+## Best Practices
+
+<Check>Keep titles concise and descriptive (2-5 words)</Check>
+<Check>Use descriptions to provide context or instructions</Check>
+<Check>Ensure the component hierarchy uses h1 only once per page</Check>
+<Check>Consider responsive font sizes for mobile devices</Check>
+<Check>Use semantic HTML for better SEO and accessibility</Check>

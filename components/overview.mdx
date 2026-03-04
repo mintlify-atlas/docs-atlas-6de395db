@@ -1,0 +1,110 @@
+---
+title: Components Overview
+description: Reusable React components across all mini projects
+---
+
+## Available Components
+
+This section documents all reusable React components found across the React Mini Projects collection. These components are designed to be simple, focused, and demonstrate core React patterns.
+
+### Shared Components
+
+These components are used across multiple projects:
+
+<CardGroup cols={2}>
+  <Card title="SearchBar" icon="magnifying-glass" href="/components/search-bar">
+    Input component with debounced search functionality
+  </Card>
+  <Card title="CustomHeader" icon="heading" href="/components/custom-header">
+    Configurable page header with title and optional description
+  </Card>
+</CardGroup>
+
+### GIFs App Components
+
+Components specific to the GIFs search application:
+
+<CardGroup cols={2}>
+  <Card title="GifList" icon="images" href="/components/gif-list">
+    Grid display for GIF search results
+  </Card>
+  <Card title="PreviousSearches" icon="clock-rotate-left">
+    Clickable list of previous search terms
+  </Card>
+</CardGroup>
+
+### Weather Finder Components
+
+Components for the weather application:
+
+<CardGroup cols={2}>
+  <Card title="WeatherDisplay" icon="cloud-sun" href="/components/weather-display">
+    Current weather and 7-day forecast display
+  </Card>
+  <Card title="ErrorMessage" icon="triangle-exclamation">
+    Accessible error state display
+  </Card>
+  <Card title="LoadingSpinner" icon="spinner">
+    Loading state indicator with animation
+  </Card>
+</CardGroup>
+
+## Component Design Principles
+
+All components in this collection follow these principles:
+
+1. **TypeScript First** - All components use TypeScript with explicit prop interfaces
+2. **Functional Components** - Modern React with hooks instead of class components
+3. **Accessibility** - ARIA labels and semantic HTML where appropriate
+4. **Simple Styling** - CSS classes for easy customization
+5. **Single Responsibility** - Each component has a focused purpose
+
+## Common Patterns
+
+### Props Interface Pattern
+
+All components define a `Props` interface for type safety:
+
+```typescript
+interface Props {
+  requiredProp: string;
+  optionalProp?: number;
+}
+
+export const MyComponent = ({ requiredProp, optionalProp }: Props) => {
+  // Component logic
+};
+```
+
+### Callback Props
+
+Components that need to communicate with parents use callback props:
+
+```typescript
+interface Props {
+  onAction: (data: string) => void;
+}
+```
+
+### TypeScript FC Type
+
+Some components use React's `FC` (FunctionComponent) type:
+
+```typescript
+import type { FC } from "react";
+
+export const MyComponent: FC<Props> = ({ prop1, prop2 }) => {
+  // Component logic
+};
+```
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Projects" icon="folder-tree" href="/projects/weather-finder">
+    Explore how these components are used in complete projects
+  </Card>
+  <Card title="Hooks" icon="anchor" href="/hooks/overview">
+    Learn about custom hooks used with these components
+  </Card>
+</CardGroup>

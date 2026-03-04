@@ -1,0 +1,602 @@
+---
+title: GifList
+description: Grid layout component for displaying GIF search results
+---
+
+## Overview
+
+The GifList component displays an array of GIF objects in a responsive grid layout. Each GIF is shown with its image, title, and dimensions.
+
+**Location**: `gifs-app/src/gifs/components/GifList.tsx`
+
+## Props
+
+<ParamField path="gifs" type="Gif[]" required>
+  Array of GIF objects to display. Each object must match the Gif interface.
+
+  ```typescript
+  interface Gif {
+    id: string;
+    title: string;
+    url: string;
+    width: number;
+    height: number;
+  }
+  ```
+</ParamField>
+
+## Gif Interface
+
+The component expects an array of objects with this structure:
+
+```typescript
+interface Gif {
+  id: string;      // Unique identifier (used as React key)
+  title: string;   // GIF title/description
+  url: string;     // Direct URL to the GIF image
+  width: number;   // GIF width in pixels
+  height: number;  // GIF height in pixels
+}
+```
+
+**Source**: `gifs-app/src/gifs/interfaces/gif.interface.ts:1`
+
+## Features
+
+- **Grid Layout**: Responsive CSS grid using `gifs-container` class
+- **Card Display**: Each GIF in a styled `gif-card` container
+- **Metadata Display**: Shows title and dimensions for each GIF
+- **Key Optimization**: Uses unique GIF ID for React list keys
+- **TypeScript FC**: Uses React.FC type for enhanced type checking
+- **Alt Text**: Proper alt attributes for accessibility
+
+## Usage Example
+
+<Tabs>
+  <Tab title="Basic Usage">
+    ```tsx
+    import { GifList } from './components/GifList';
+    import type { Gif } from './interfaces/gif.interface';
+
+    function GifsApp() {
+      const gifs: Gif[] = [
+        {
+          id: 'abc123',
+          title: 'Happy Cat',
+          url: 'https://media.giphy.com/media/abc123/giphy.gif',
+          width: 480,
+          height: 360
+        },
+        {
+          id: 'def456',
+          title: 'Dancing Dog',
+          url: 'https://media.giphy.com/media/def456/giphy.gif',
+          width: 500,
+          height: 375
+        }
+      ];
+
+      return <GifList gifs={gifs} />;
+    }
+    ```
+  </Tab>
+  <Tab title="With API Data">
+    ```tsx
+    import { GifList } from './components/GifList';
+    import { useGifs } from './hooks/useGifs';
+
+    function GifsPage() {
+      const { gifs, isLoading } = useGifs();
+
+      if (isLoading) return <p>Cargando...</p>;
+
+      return (
+        <div>
+          <h2>Resultados de búsqueda</h2>
+          <GifList gifs={gifs} />
+        </div>
+      );
+    }
+    ```
+  </Tab>
+  <Tab title="Empty State">
+    ```tsx
+    import { GifList } from './components/GifList';
+
+    function GifsPage({ gifs }: { gifs: Gif[] }) {
+      if (gifs.length === 0) {
+        return (
+          <div className="empty-state">
+            <p>No se encontraron GIFs</p>
+          </div>
+        );
+      }
+
+      return <GifList gifs={gifs} />;
+    }
+    ```
+  </Tab>
+</Tabs>
+
+## Implementation
+
+<CodeGroup>
+
+```tsx Component Source
+import type { FC } from "react";
+import type { Gif } from "../interfaces/gif.interface";
+
+interface Props {
+  gifs: Gif[];
+}
+
+export const GifList: FC<Props> = ({ gifs }) => {
+  return (
+    <div className="gifs-container">
+      {gifs.map((gif) => (
+        <div key={gif.id} className="gif-card">
+          <img src={gif.url} alt={gif.title} />
+          <h3> {gif.title}</h3>
+          <p>
+            {gif.width}x{gif.height} (1.5mb)
+          </p>
+        </div>
+      ))}
+    </div>
+  );
+};
+```
+
+```typescript Gif Interface
+// gifs-app/src/gifs/interfaces/gif.interface.ts
+export interface Gif {
+  id: string;
+  title: string;
+  url: string;
+  width: number;
+  height: number;
+}
+```
+
+```tsx Complete Example
+import { GifList } from '../gifs/components/GifList';
+import { SearchBar } from '../shared/components/SearchBar';
+import { useGifs } from '../gifs/hooks/useGifs';
+import type { Gif } from '../gifs/interfaces/gif.interface';
+
+export const GifsPage = () => {
+  const { gifs, searchGifs, isLoading } = useGifs();
+
+  return (
+    <div className="gifs-page">
+      <SearchBar 
+        placeholder="Buscar GIFs..."
+        onQuery={searchGifs}
+      />
+      
+      {isLoading && <p>Buscando GIFs...</p>}
+      
+      {!isLoading && gifs.length === 0 && (
+        <p>No hay resultados</p>
+      )}
+      
+      {!isLoading && gifs.length > 0 && (
+        <GifList gifs={gifs} />
+      )}
+    </div>
+  );
+};
+```
+
+</CodeGroup>
+
+## Styling
+
+The component uses two main CSS classes for styling:
+
+<CodeGroup>
+
+```css Grid Container
+.gifs-container {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 1.5rem;
+  padding: 2rem;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .gifs-container {
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 1rem;
+    padding: 1rem;
+  }
+}
+```
+
+```css GIF Card
+.gif-card {
+  background: white;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  transition: transform 0.2s, box-shadow 0.2s;
+  cursor: pointer;
+}
+
+.gif-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+}
+
+.gif-card img {
+  width: 100%;
+  height: 200px;
+  object-fit: cover;
+  display: block;
+}
+
+.gif-card h3 {
+  padding: 0.75rem;
+  margin: 0;
+  font-size: 1rem;
+  color: #333;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.gif-card p {
+  padding: 0 0.75rem 0.75rem;
+  margin: 0;
+  font-size: 0.875rem;
+  color: #666;
+}
+```
+
+```css Alternative Masonry Layout
+/* For a Pinterest-style masonry layout */
+.gifs-container {
+  column-count: 4;
+  column-gap: 1rem;
+  padding: 2rem;
+}
+
+.gif-card {
+  break-inside: avoid;
+  margin-bottom: 1rem;
+}
+
+.gif-card img {
+  width: 100%;
+  height: auto; /* Preserve aspect ratio */
+}
+
+@media (max-width: 1200px) {
+  .gifs-container { column-count: 3; }
+}
+
+@media (max-width: 768px) {
+  .gifs-container { column-count: 2; }
+}
+
+@media (max-width: 480px) {
+  .gifs-container { column-count: 1; }
+}
+```
+
+</CodeGroup>
+
+## Data Transformation
+
+Typically, you'll need to transform API responses to match the Gif interface:
+
+```tsx
+// Example: Transforming Giphy API response
+interface GiphyGif {
+  id: string;
+  title: string;
+  images: {
+    fixed_height: {
+      url: string;
+      width: string;
+      height: string;
+    };
+  };
+}
+
+function transformGiphyData(giphyGifs: GiphyGif[]): Gif[] {
+  return giphyGifs.map(gif => ({
+    id: gif.id,
+    title: gif.title || 'Untitled',
+    url: gif.images.fixed_height.url,
+    width: parseInt(gif.images.fixed_height.width),
+    height: parseInt(gif.images.fixed_height.height)
+  }));
+}
+
+// Usage in a hook
+export function useGifs() {
+  const [gifs, setGifs] = useState<Gif[]>([]);
+
+  const searchGifs = async (query: string) => {
+    const response = await fetch(`https://api.giphy.com/v1/gifs/search?q=${query}`);
+    const data = await response.json();
+    const transformedGifs = transformGiphyData(data.data);
+    setGifs(transformedGifs);
+  };
+
+  return { gifs, searchGifs };
+}
+```
+
+## Performance Optimization
+
+<AccordionGroup>
+  <Accordion title="Lazy Loading Images">
+    Implement lazy loading for better performance with many GIFs:
+
+    ```tsx
+    export const GifList: FC<Props> = ({ gifs }) => {
+      return (
+        <div className="gifs-container">
+          {gifs.map((gif) => (
+            <div key={gif.id} className="gif-card">
+              <img 
+                src={gif.url} 
+                alt={gif.title}
+                loading="lazy" // Native lazy loading
+              />
+              <h3>{gif.title}</h3>
+              <p>{gif.width}x{gif.height}</p>
+            </div>
+          ))}
+        </div>
+      );
+    };
+    ```
+  </Accordion>
+
+  <Accordion title="Virtualization">
+    For very large lists, use react-window or react-virtualized:
+
+    ```tsx
+    import { FixedSizeGrid } from 'react-window';
+
+    const GifCell = ({ columnIndex, rowIndex, style, data }) => {
+      const index = rowIndex * 4 + columnIndex;
+      const gif = data.gifs[index];
+      if (!gif) return null;
+
+      return (
+        <div style={style} className="gif-card">
+          <img src={gif.url} alt={gif.title} />
+          <h3>{gif.title}</h3>
+        </div>
+      );
+    };
+
+    export const VirtualizedGifList: FC<Props> = ({ gifs }) => {
+      return (
+        <FixedSizeGrid
+          columnCount={4}
+          columnWidth={250}
+          height={600}
+          rowCount={Math.ceil(gifs.length / 4)}
+          rowHeight={300}
+          width={1000}
+          itemData={{ gifs }}
+        >
+          {GifCell}
+        </FixedSizeGrid>
+      );
+    };
+    ```
+  </Accordion>
+
+  <Accordion title="Memoization">
+    Prevent unnecessary re-renders with React.memo:
+
+    ```tsx
+    import { memo } from 'react';
+
+    export const GifList: FC<Props> = memo(({ gifs }) => {
+      return (
+        <div className="gifs-container">
+          {gifs.map((gif) => (
+            <GifCard key={gif.id} gif={gif} />
+          ))}
+        </div>
+      );
+    });
+
+    const GifCard = memo(({ gif }: { gif: Gif }) => (
+      <div className="gif-card">
+        <img src={gif.url} alt={gif.title} />
+        <h3>{gif.title}</h3>
+        <p>{gif.width}x{gif.height}</p>
+      </div>
+    ));
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Enhanced Features
+
+<Tabs>
+  <Tab title="Click Handler">
+    ```tsx
+    interface Props {
+      gifs: Gif[];
+      onGifClick?: (gif: Gif) => void;
+    }
+
+    export const GifList: FC<Props> = ({ gifs, onGifClick }) => {
+      return (
+        <div className="gifs-container">
+          {gifs.map((gif) => (
+            <div 
+              key={gif.id} 
+              className="gif-card"
+              onClick={() => onGifClick?.(gif)}
+              role="button"
+              tabIndex={0}
+            >
+              <img src={gif.url} alt={gif.title} />
+              <h3>{gif.title}</h3>
+              <p>{gif.width}x{gif.height}</p>
+            </div>
+          ))}
+        </div>
+      );
+    };
+    ```
+  </Tab>
+  <Tab title="Loading State">
+    ```tsx
+    interface Props {
+      gifs: Gif[];
+      isLoading?: boolean;
+    }
+
+    export const GifList: FC<Props> = ({ gifs, isLoading }) => {
+      if (isLoading) {
+        return (
+          <div className="gifs-container">
+            {Array.from({ length: 12 }).map((_, i) => (
+              <div key={i} className="gif-card skeleton">
+                <div className="skeleton-image" />
+                <div className="skeleton-text" />
+              </div>
+            ))}
+          </div>
+        );
+      }
+
+      return (
+        <div className="gifs-container">
+          {gifs.map((gif) => (
+            <div key={gif.id} className="gif-card">
+              <img src={gif.url} alt={gif.title} />
+              <h3>{gif.title}</h3>
+              <p>{gif.width}x{gif.height}</p>
+            </div>
+          ))}
+        </div>
+      );
+    };
+    ```
+  </Tab>
+  <Tab title="Error Boundaries">
+    ```tsx
+    const GifCard = ({ gif }: { gif: Gif }) => {
+      const [error, setError] = useState(false);
+
+      return (
+        <div className="gif-card">
+          {error ? (
+            <div className="gif-error">
+              <span>❌</span>
+              <p>Error loading GIF</p>
+            </div>
+          ) : (
+            <img 
+              src={gif.url} 
+              alt={gif.title}
+              onError={() => setError(true)}
+            />
+          )}
+          <h3>{gif.title}</h3>
+          <p>{gif.width}x{gif.height}</p>
+        </div>
+      );
+    };
+
+    export const GifList: FC<Props> = ({ gifs }) => {
+      return (
+        <div className="gifs-container">
+          {gifs.map((gif) => (
+            <GifCard key={gif.id} gif={gif} />
+          ))}
+        </div>
+      );
+    };
+    ```
+  </Tab>
+</Tabs>
+
+## Testing
+
+```tsx
+import { render, screen } from '@testing-library/react';
+import { GifList } from './GifList';
+import type { Gif } from '../interfaces/gif.interface';
+
+const mockGifs: Gif[] = [
+  {
+    id: '1',
+    title: 'Test GIF 1',
+    url: 'https://example.com/gif1.gif',
+    width: 480,
+    height: 360
+  },
+  {
+    id: '2',
+    title: 'Test GIF 2',
+    url: 'https://example.com/gif2.gif',
+    width: 500,
+    height: 375
+  }
+];
+
+describe('GifList', () => {
+  it('renders all gifs', () => {
+    render(<GifList gifs={mockGifs} />);
+    expect(screen.getByText('Test GIF 1')).toBeInTheDocument();
+    expect(screen.getByText('Test GIF 2')).toBeInTheDocument();
+  });
+
+  it('displays correct dimensions', () => {
+    render(<GifList gifs={mockGifs} />);
+    expect(screen.getByText('480x360 (1.5mb)')).toBeInTheDocument();
+  });
+
+  it('renders images with correct alt text', () => {
+    render(<GifList gifs={mockGifs} />);
+    const img = screen.getByAlt('Test GIF 1');
+    expect(img).toHaveAttribute('src', 'https://example.com/gif1.gif');
+  });
+
+  it('renders empty when no gifs provided', () => {
+    const { container } = render(<GifList gifs={[]} />);
+    expect(container.querySelector('.gif-card')).not.toBeInTheDocument();
+  });
+});
+```
+
+## Related Components
+
+<CardGroup cols={3}>
+  <Card title="SearchBar" icon="magnifying-glass" href="/components/search-bar">
+    Search component that populates GifList
+  </Card>
+  <Card title="PreviousSearches" icon="clock-rotate-left">
+    Shows clickable list of past searches
+  </Card>
+  <Card title="CustomHeader" icon="heading" href="/components/custom-header">
+    Page header above the GIF grid
+  </Card>
+</CardGroup>
+
+## Best Practices
+
+<Check>Always use unique `id` values for React keys</Check>
+<Check>Provide meaningful alt text for accessibility</Check>
+<Check>Implement lazy loading for images</Check>
+<Check>Handle empty state gracefully</Check>
+<Check>Use responsive grid layouts</Check>
+<Check>Consider virtualization for large lists</Check>
+<Check>Add error handling for failed image loads</Check>
+<Check>Optimize image sizes for web performance</Check>

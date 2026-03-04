@@ -1,0 +1,492 @@
+---
+title: Weather Display Components
+description: Current weather and forecast display components for the Weather Finder app
+---
+
+## Overview
+
+The Weather Finder app uses two main display components that work together to show comprehensive weather information:
+
+- **CurrentWeather**: Displays current conditions for a city
+- **WeatherForecast**: Shows a 7-day forecast with daily highs and lows
+
+Both components are designed with accessibility in mind and use emoji icons for visual weather representation.
+
+## CurrentWeather Component
+
+### Purpose
+
+Displays the current weather conditions for a searched city, including temperature, weather description, and wind speed.
+
+**Location**: `weather-finder/src/components/CurrentWeather.tsx`
+
+### Props
+
+<ParamField path="data" type="WeatherData" required>
+  Weather data object containing city information and current conditions
+
+  ```typescript
+  interface WeatherData {
+    cityName: string;
+    country: string;
+    current: CurrentWeatherData;
+    daily: DailyForecastData;
+  }
+  ```
+</ParamField>
+
+### WeatherData Interface
+
+```typescript
+interface CurrentWeatherData {
+  temperature_2m: number;      // Temperature in Celsius
+  wind_speed_10m: number;      // Wind speed in km/h
+  weather_code: number;        // WMO weather code
+}
+
+interface WeatherData {
+  cityName: string;            // City name from geocoding
+  country: string;             // Country code
+  current: CurrentWeatherData; // Current weather details
+  daily: DailyForecastData;    // Forecast data
+}
+```
+
+### Features
+
+- **City Display**: Shows city name and country
+- **Weather Emoji**: Visual representation using `getWeatherInfo()` utility
+- **Temperature**: Rounded to nearest degree Celsius
+- **Weather Description**: Human-readable condition (e.g., "Soleado", "Nublado")
+- **Wind Speed**: Displayed in km/h
+- **ARIA Labels**: Accessible with `aria-label` attributes
+
+### Usage Example
+
+```tsx
+import { CurrentWeather } from './components/CurrentWeather';
+import type { WeatherData } from './types/weather';
+
+function WeatherApp() {
+  const weatherData: WeatherData = {
+    cityName: 'Madrid',
+    country: 'ES',
+    current: {
+      temperature_2m: 24.5,
+      wind_speed_10m: 12.3,
+      weather_code: 0
+    },
+    daily: { /* ... */ }
+  };
+
+  return <CurrentWeather data={weatherData} />;
+}
+```
+
+### Implementation
+
+<CodeGroup>
+
+```tsx Component Source
+import type { WeatherData } from '../types/weather';
+import { getWeatherInfo } from '../utils/weatherCodes';
+
+interface Props {
+  data: WeatherData;
+}
+
+export function CurrentWeather({ data }: Props) {
+  const { cityName, country, current } = data;
+  const { description, emoji } = getWeatherInfo(current.weather_code);
+
+  return (
+    <section className="current-weather" aria-label="Clima actual">
+      <div className="city-info">
+        <h2 className="city-name">{cityName}</h2>
+        <span className="city-country">{country}</span>
+      </div>
+
+      <div className="weather-main">
+        <span className="weather-emoji" role="img" aria-label={description}>
+          {emoji}
+        </span>
+        <div className="temperature-block">
+          <span className="temperature">{Math.round(current.temperature_2m)}°C</span>
+          <span className="weather-description">{description}</span>
+        </div>
+      </div>
+
+      <div className="weather-details">
+        <div className="detail-item">
+          <span className="detail-icon" aria-hidden="true">💨</span>
+          <span className="detail-label">Viento</span>
+          <span className="detail-value">{current.wind_speed_10m} km/h</span>
+        </div>
+      </div>
+    </section>
+  );
+}
+```
+
+```tsx Usage in App
+import { CurrentWeather } from './components/CurrentWeather';
+import { WeatherForecast } from './components/WeatherForecast';
+import { useWeather } from './hooks/useWeather';
+
+export function App() {
+  const { weatherData, status } = useWeather();
+
+  if (status === 'success' && weatherData) {
+    return (
+      <>
+        <CurrentWeather data={weatherData} />
+        <WeatherForecast daily={weatherData.daily} />
+      </>
+    );
+  }
+
+  return null;
+}
+```
+
+</CodeGroup>
+
+## WeatherForecast Component
+
+### Purpose
+
+Displays a 7-day weather forecast with daily temperature ranges and weather conditions.
+
+**Location**: `weather-finder/src/components/WeatherForecast.tsx`
+
+### Props
+
+<ParamField path="daily" type="DailyForecastData" required>
+  Forecast data containing arrays of daily weather information
+
+  ```typescript
+  interface DailyForecastData {
+    time: string[];              // ISO date strings
+    temperature_2m_max: number[]; // Daily max temps
+    temperature_2m_min: number[]; // Daily min temps
+    weather_code: number[];       // WMO weather codes
+  }
+  ```
+</ParamField>
+
+### DailyForecastData Interface
+
+```typescript
+interface DailyForecastData {
+  time: string[];              // Array of dates: ["2026-03-04", "2026-03-05", ...]
+  temperature_2m_max: number[]; // Max temperatures: [25.5, 26.2, ...]
+  temperature_2m_min: number[]; // Min temperatures: [15.3, 16.1, ...]
+  weather_code: number[];       // Weather codes: [0, 2, 3, ...]
+}
+```
+
+### Features
+
+- **7-Day Forecast**: Displays all days from the forecast data
+- **Today Highlight**: First card marked with special styling
+- **Date Formatting**: Uses Spanish locale for day/date display
+- **Weather Emojis**: Visual representation for each day
+- **Temperature Range**: Shows both max and min temperatures
+- **Accessibility**: Comprehensive ARIA labels for each forecast card
+
+### Usage Example
+
+```tsx
+import { WeatherForecast } from './components/WeatherForecast';
+import type { DailyForecastData } from './types/weather';
+
+function WeatherApp() {
+  const forecastData: DailyForecastData = {
+    time: ['2026-03-04', '2026-03-05', '2026-03-06'],
+    temperature_2m_max: [25.5, 26.2, 24.8],
+    temperature_2m_min: [15.3, 16.1, 14.9],
+    weather_code: [0, 2, 3]
+  };
+
+  return <WeatherForecast daily={forecastData} />;
+}
+```
+
+### Implementation
+
+<CodeGroup>
+
+```tsx Component Source
+import type { DailyForecastData } from '../types/weather';
+import { getWeatherInfo } from '../utils/weatherCodes';
+
+interface Props {
+  daily: DailyForecastData;
+}
+
+function formatDay(dateStr: string): string {
+  const date = new Date(`${dateStr}T12:00:00`);
+  return date.toLocaleDateString('es-ES', {
+    weekday: 'short',
+    day: 'numeric',
+    month: 'short',
+  });
+}
+
+export function WeatherForecast({ daily }: Props) {
+  return (
+    <section className="forecast" aria-label="Pronóstico de 7 días">
+      <h3 className="forecast-title">Pronóstico de 7 días</h3>
+      <div className="forecast-list">
+        {daily.time.map((date, i) => {
+          const { description, emoji } = getWeatherInfo(daily.weather_code[i]);
+          const isToday = i === 0;
+          return (
+            <div
+              key={date}
+              className={`forecast-card${isToday ? ' forecast-card--today' : ''}`}
+              aria-label={`${isToday ? 'Hoy' : formatDay(date)}: ${description}, máx ${Math.round(daily.temperature_2m_max[i])}°, mín ${Math.round(daily.temperature_2m_min[i])}°`}
+            >
+              <span className="forecast-day">{isToday ? 'Hoy' : formatDay(date)}</span>
+              <span className="forecast-emoji" role="img" aria-hidden="true">
+                {emoji}
+              </span>
+              <span className="forecast-desc">{description}</span>
+              <div className="forecast-temps">
+                <span className="temp-max">{Math.round(daily.temperature_2m_max[i])}°</span>
+                <span className="temp-separator">/</span>
+                <span className="temp-min">{Math.round(daily.temperature_2m_min[i])}°</span>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
+```
+
+```tsx Helper Function
+function formatDay(dateStr: string): string {
+  // Input: "2026-03-04"
+  // Output: "mié 4 mar" (Spanish locale)
+  
+  const date = new Date(`${dateStr}T12:00:00`);
+  return date.toLocaleDateString('es-ES', {
+    weekday: 'short',  // "mié"
+    day: 'numeric',    // "4"
+    month: 'short',    // "mar"
+  });
+}
+```
+
+```tsx Complete Weather Display
+import { CurrentWeather } from './components/CurrentWeather';
+import { WeatherForecast } from './components/WeatherForecast';
+
+function WeatherDisplay({ weatherData }: { weatherData: WeatherData }) {
+  return (
+    <div className="weather-display">
+      <CurrentWeather data={weatherData} />
+      <WeatherForecast daily={weatherData.daily} />
+    </div>
+  );
+}
+```
+
+</CodeGroup>
+
+## Weather Utility: getWeatherInfo
+
+Both components use the `getWeatherInfo` utility to convert WMO weather codes to emoji and descriptions:
+
+```typescript
+// Example usage
+import { getWeatherInfo } from '../utils/weatherCodes';
+
+const { description, emoji } = getWeatherInfo(0);
+// Result: { description: "Despejado", emoji: "☀️" }
+```
+
+### Common Weather Codes
+
+| Code | Description | Emoji |
+|------|-------------|-------|
+| 0 | Despejado (Clear) | ☀️ |
+| 1-3 | Parcialmente nublado | 🌤️ |
+| 45-48 | Niebla (Fog) | 🌫️ |
+| 51-57 | Llovizna (Drizzle) | 🌦️ |
+| 61-67 | Lluvia (Rain) | 🌧️ |
+| 71-77 | Nieve (Snow) | ❄️ |
+| 80-82 | Chubascos (Showers) | 🌦️ |
+| 95-99 | Tormenta (Thunderstorm) | ⛈️ |
+
+## Styling Guidelines
+
+<Tabs>
+  <Tab title="Current Weather">
+    ```css
+    .current-weather {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      padding: 2rem;
+      border-radius: 12px;
+      color: white;
+    }
+
+    .weather-emoji {
+      font-size: 5rem;
+    }
+
+    .temperature {
+      font-size: 3rem;
+      font-weight: bold;
+    }
+
+    .weather-details {
+      display: flex;
+      gap: 1rem;
+      margin-top: 1.5rem;
+    }
+    ```
+  </Tab>
+  <Tab title="Forecast">
+    ```css
+    .forecast-list {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+      gap: 1rem;
+    }
+
+    .forecast-card {
+      background: white;
+      padding: 1rem;
+      border-radius: 8px;
+      text-align: center;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+
+    .forecast-card--today {
+      background: #f0f7ff;
+      border: 2px solid #667eea;
+    }
+
+    .forecast-emoji {
+      font-size: 2.5rem;
+      display: block;
+      margin: 0.5rem 0;
+    }
+    ```
+  </Tab>
+</Tabs>
+
+## Accessibility Features
+
+<AccordionGroup>
+  <Accordion title="Semantic HTML">
+    Both components use `<section>` tags with `aria-label` attributes to define landmark regions for screen readers.
+  </Accordion>
+
+  <Accordion title="ARIA Labels">
+    - Current weather has `aria-label="Clima actual"`
+    - Forecast has `aria-label="Pronóstico de 7 días"`
+    - Each forecast card has a descriptive `aria-label` with full weather information
+  </Accordion>
+
+  <Accordion title="Emoji Accessibility">
+    - Emojis use `role="img"` for semantic meaning
+    - `aria-label` provides text alternative for weather emoji
+    - Decorative emojis use `aria-hidden="true"`
+  </Accordion>
+
+  <Accordion title="Screen Reader Experience">
+    A screen reader would announce:
+    "Pronóstico de 7 días, región. Hoy: Despejado, máx 25°, mín 15°"
+  </Accordion>
+</AccordionGroup>
+
+## Complete Example
+
+<CodeGroup>
+
+```tsx Full Weather Page
+import { CurrentWeather } from './components/CurrentWeather';
+import { WeatherForecast } from './components/WeatherForecast';
+import { SearchBar } from './components/SearchBar';
+import { LoadingSpinner } from './components/LoadingSpinner';
+import { ErrorMessage } from './components/ErrorMessage';
+import { useWeather } from './hooks/useWeather';
+
+export function WeatherPage() {
+  const { weatherData, status, error, searchCity } = useWeather();
+
+  return (
+    <div className="weather-page">
+      <SearchBar 
+        onSearch={searchCity}
+        isLoading={status === 'loading'}
+      />
+
+      {status === 'loading' && <LoadingSpinner />}
+      
+      {status === 'error' && <ErrorMessage message={error} />}
+      
+      {status === 'success' && weatherData && (
+        <>
+          <CurrentWeather data={weatherData} />
+          <WeatherForecast daily={weatherData.daily} />
+        </>
+      )}
+    </div>
+  );
+}
+```
+
+```typescript Type Definitions
+// types/weather.ts
+export interface CurrentWeatherData {
+  temperature_2m: number;
+  wind_speed_10m: number;
+  weather_code: number;
+}
+
+export interface DailyForecastData {
+  time: string[];
+  temperature_2m_max: number[];
+  temperature_2m_min: number[];
+  weather_code: number[];
+}
+
+export interface WeatherData {
+  cityName: string;
+  country: string;
+  current: CurrentWeatherData;
+  daily: DailyForecastData;
+}
+
+export type Status = 'idle' | 'loading' | 'success' | 'error';
+```
+
+</CodeGroup>
+
+## Related Components
+
+<CardGroup cols={3}>
+  <Card title="SearchBar" icon="magnifying-glass" href="/components/search-bar">
+    Search component for city input
+  </Card>
+  <Card title="LoadingSpinner" icon="spinner">
+    Loading state indicator
+  </Card>
+  <Card title="ErrorMessage" icon="triangle-exclamation">
+    Error display component
+  </Card>
+</CardGroup>
+
+## Best Practices
+
+<Check>Always round temperatures for better UX: `Math.round(temp)`</Check>
+<Check>Use proper ARIA labels for accessibility</Check>
+<Check>Provide visual and text descriptions for weather conditions</Check>
+<Check>Highlight "today" in forecasts for better orientation</Check>
+<Check>Use semantic HTML (`<section>`, proper heading hierarchy)</Check>
+<Check>Display units (°C, km/h) clearly next to values</Check>

@@ -1,0 +1,400 @@
+---
+title: 'GIFs App'
+description: 'A GIF search application powered by the Giphy API with search history and caching'
+---
+
+## Overview
+
+GIFs App is a React + TypeScript application that allows users to search and browse GIFs using the Giphy API. The app features search history tracking, intelligent caching with `useRef`, and a clean, responsive interface.
+
+<CardGroup cols={2}>
+  <Card title="Giphy Integration" icon="image">
+    Search and display GIFs using the Giphy API
+  </Card>
+  <Card title="Smart Caching" icon="database">
+    Cache search results with `useRef` for instant loading
+  </Card>
+  <Card title="Search History" icon="clock">
+    Track up to 7 recent searches with one-click replay
+  </Card>
+  <Card title="Debounced Search" icon="timer">
+    Automatic search with 700ms debounce delay
+  </Card>
+</CardGroup>
+
+## Key Features
+
+- **GIF Search**: Real-time search powered by Giphy API
+- **Debounced Input**: Automatic search with configurable delay
+- **Search History**: Displays up to 7 previous search terms
+- **Smart Caching**: Uses `useRef` to cache results and avoid duplicate API calls
+- **Instant Replay**: Click previous searches to instantly load cached results
+- **Axios Integration**: Configured Axios instance with interceptors
+- **TypeScript**: Fully typed interfaces for API responses and data models
+- **Testing**: Unit tests with Vitest
+
+## Project Structure
+
+```
+gifs-app/
+├── src/
+│   ├── gifs/
+│   │   ├── actions/
+│   │   │   └── get-gifs-by-query.action.ts  # GIF fetching logic
+│   │   ├── api/
+│   │   │   └── giphy.api.ts                 # Axios instance
+│   │   ├── components/
+│   │   │   ├── GifList.tsx                  # GIF grid display
+│   │   │   └── PreviousSearches.tsx         # Search history
+│   │   ├── hooks/
+│   │   │   └── useGifs.tsx                  # Custom GIF hook
+│   │   └── interfaces/
+│   │       ├── gif.interface.ts             # GIF type
+│   │       └── giphy.response.ts            # API response types
+│   ├── shared/
+│   │   └── components/
+│   │       ├── CustomHeader.tsx             # App header
+│   │       └── SearchBar.tsx                # Search input
+│   └── GifsApp.tsx                          # Main app component
+└── package.json
+```
+
+## How to Run
+
+<Steps>
+  <Step title="Set Up Environment">
+    Create a `.env` file with your Giphy API key:
+    ```bash
+    VITE_GIPHY_API_KEY=your_api_key_here
+    ```
+    Get your free API key at [Giphy Developers](https://developers.giphy.com/)
+  </Step>
+  
+  <Step title="Install Dependencies">
+    ```bash
+    npm install
+    ```
+  </Step>
+  
+  <Step title="Start Development Server">
+    ```bash
+    npm run dev
+    ```
+  </Step>
+  
+  <Step title="Run Tests">
+    ```bash
+    npm run test
+    ```
+  </Step>
+</Steps>
+
+## Main Components
+
+### GifsApp Component
+
+The main application component that orchestrates the GIF search functionality.
+
+```tsx GifsApp.tsx
+import { GifList } from "./gifs/components/GifList";
+import { PreviousSearches } from "./gifs/components/PreviousSearches";
+import { CustomHeader } from "./shared/components/CustomHeader";
+import { SearchBar } from "./shared/components/SearchBar";
+import { useGifs } from "./gifs/hooks/useGifs";
+
+export const GifsApp = () => {
+  const { handleSearch, handleTermClicked, previousTerms, gifs } = useGifs();
+  
+  return (
+    <>
+      <CustomHeader
+        title="Buscador de Gifs"
+        description="Descubre y comparte el gif"
+      />
+      
+      <SearchBar 
+        placeholder="Busca lo que quieras" 
+        onQuery={handleSearch} 
+      />
+      
+      <PreviousSearches
+        searches={previousTerms}
+        onLabelClicked={handleTermClicked}
+      />
+      
+      <GifList gifs={gifs} />
+    </>
+  );
+};
+```
+
+### SearchBar Component
+
+A debounced search input that automatically triggers searches after user stops typing.
+
+```tsx SearchBar.tsx
+import { useEffect, useState, type KeyboardEvent } from "react";
+
+interface Props {
+  placeholder?: string;
+  onQuery: (query: string) => void;
+}
+
+export const SearchBar = ({ placeholder = "Buscar", onQuery }: Props) => {
+  const [query, setQuery] = useState("");
+
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      onQuery(query);
+    }, 700);
+
+    return () => {
+      clearTimeout(timeoutId);
+    };
+  }, [query, onQuery]);
+
+  const handleSearch = () => {
+    onQuery(query);
+  };
+
+  const handleKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
+    if (event.key === "Enter") {
+      handleSearch();
+    }
+  };
+
+  return (
+    <div className="search-container">
+      <input
+        type="text"
+        placeholder={placeholder}
+        value={query}
+        onChange={(event) => setQuery(event.target.value)}
+        onKeyDown={handleKeyDown}
+      />
+      <button onClick={handleSearch}>Buscar</button>
+    </div>
+  );
+};
+```
+
+<Note>
+  The SearchBar uses a 700ms debounce to prevent excessive API calls while typing.
+</Note>
+
+### GifList Component
+
+Displays a grid of GIF results with responsive cards.
+
+```tsx GifList.tsx
+import type { FC } from "react";
+import type { Gif } from "../interfaces/gif.interface";
+
+interface Props {
+  gifs: Gif[];
+}
+
+export const GifList: FC<Props> = ({ gifs }) => {
+  return (
+    <div className="gifs-container">
+      {gifs.map((gif) => (
+        <div key={gif.id} className="gif-card">
+          <img src={gif.url} alt={gif.title} />
+          <h3>{gif.title}</h3>
+          <p>
+            {gif.width}x{gif.height}
+          </p>
+        </div>
+      ))}
+    </div>
+  );
+};
+```
+
+## Custom Hooks
+
+### useGifs Hook
+
+The core hook that manages GIF search, caching, and search history.
+
+```tsx useGifs.tsx
+import { useRef, useState } from "react";
+import { getGifsByQuery } from "../actions/get-gifs-by-query.action";
+import type { Gif } from "../interfaces/gif.interface";
+
+export const useGifs = () => {
+  const [gifs, setGifs] = useState<Gif[]>([]);
+  const [previousTerms, setPreviousTerms] = useState<string[]>([]);
+
+  // Cache using useRef to persist between renders
+  const gifsCache = useRef<Record<string, Gif[]>>({});
+
+  const handleTermClicked = async (term: string) => {
+    // Check cache first
+    if (gifsCache.current[term]) {
+      setGifs(gifsCache.current[term]);
+      return;
+    }
+    const gifs = await getGifsByQuery(term);
+    setGifs(gifs);
+  };
+
+  const handleSearch = async (query: string = "") => {
+    query = query.trim().toLowerCase();
+    if (query.length === 0) return;
+
+    // Avoid duplicate searches
+    if (previousTerms.includes(query)) return;
+
+    // Keep only last 7 searches
+    setPreviousTerms([query, ...previousTerms].splice(0, 7));
+
+    const gifs = await getGifsByQuery(query);
+    setGifs(gifs);
+    
+    // Cache the results
+    gifsCache.current[query] = gifs;
+  };
+
+  return {
+    gifs,
+    handleSearch,
+    previousTerms,
+    handleTermClicked,
+  };
+};
+```
+
+<Tabs>
+  <Tab title="Key Features">
+    - **Caching with useRef**: Results cached in a ref that persists across renders
+    - **Instant Loading**: Cached searches load instantly without API calls
+    - **History Management**: Maintains up to 7 recent search terms
+    - **Duplicate Prevention**: Avoids adding duplicate terms to history
+    - **Case Normalization**: Converts queries to lowercase for consistency
+  </Tab>
+  
+  <Tab title="Why useRef for Caching?">
+    `useRef` is perfect for caching because:
+    - Persists across renders without causing re-renders
+    - Mutable object that doesn't trigger React updates
+    - Better performance than `useState` for cache storage
+    - Survives component re-renders but resets on unmount
+  </Tab>
+</Tabs>
+
+## API Integration
+
+### Axios Configuration
+
+Configured Axios instance with base URL and default parameters.
+
+```ts giphy.api.ts
+import axios from "axios";
+
+export const giphyApi = axios.create({
+  baseURL: "https://api.giphy.com/v1/gifs",
+  params: {
+    lang: "es",
+    api_key: import.meta.env.VITE_GIPHY_API_KEY,
+  },
+});
+```
+
+### GIF Fetching Action
+
+Transforms Giphy API response into simplified GIF objects.
+
+```ts get-gifs-by-query.action.ts
+import type { GiphyResponse } from "../interfaces/giphy.response";
+import type { Gif } from "../interfaces/gif.interface";
+import { giphyApi } from "../api/giphy.api";
+
+export const getGifsByQuery = async (query: string): Promise<Gif[]> => {
+  const response = await giphyApi<GiphyResponse>("/search", {
+    params: {
+      q: query,
+      limit: 10,
+    },
+  });
+  
+  return response.data.data.map((gif) => ({
+    id: gif.id,
+    title: gif.title,
+    url: gif.images.original.url,
+    width: Number(gif.images.original.width),
+    height: Number(gif.images.original.height),
+  }));
+};
+```
+
+## Type Definitions
+
+<CodeGroup>
+```ts gif.interface.ts
+export interface Gif {
+  id: string;
+  title: string;
+  url: string;
+  width: number;
+  height: number;
+}
+```
+
+```ts giphy.response.ts
+export interface GiphyResponse {
+  data: GiphyGif[];
+  pagination: {
+    total_count: number;
+    count: number;
+    offset: number;
+  };
+  meta: {
+    status: number;
+    msg: string;
+  };
+}
+
+interface GiphyGif {
+  id: string;
+  title: string;
+  images: {
+    original: {
+      url: string;
+      width: string;
+      height: string;
+    };
+  };
+}
+```
+</CodeGroup>
+
+## Technologies Used
+
+- **React 19** - UI library
+- **TypeScript** - Type safety
+- **Axios** - HTTP client
+- **Vite** - Build tool with Rolldown
+- **Vitest** - Testing framework
+- **Giphy API** - GIF search and retrieval
+
+## Performance Optimizations
+
+<CardGroup cols={2}>
+  <Card title="useRef Caching" icon="bolt">
+    Cache search results to avoid duplicate API calls
+  </Card>
+  <Card title="Debounced Search" icon="clock">
+    Wait 700ms after typing stops before searching
+  </Card>
+  <Card title="Duplicate Prevention" icon="shield">
+    Check if term already exists before adding to history
+  </Card>
+  <Card title="Limited Results" icon="list">
+    Fetch only 10 GIFs per search to reduce load time
+  </Card>
+</CardGroup>
+
+<Note>
+  This project demonstrates advanced React patterns including `useRef` for caching, debounced inputs, and API integration with Axios.
+</Note>

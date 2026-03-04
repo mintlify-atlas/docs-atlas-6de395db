@@ -1,0 +1,211 @@
+---
+title: React Mini Projects
+description: A collection of small React applications demonstrating hooks, API integration, and component patterns
+mode: custom
+---
+
+<div className="relative overflow-hidden bg-gradient-to-br from-[#20232a] via-[#282c34] to-[#1a1d24] dark:from-[#0f1117] dark:via-[#1a1d27] dark:to-[#0f1117] py-20 px-4 sm:px-6 lg:px-8">
+  <div className="relative max-w-7xl mx-auto">
+    <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
+      <div className="lg:col-span-7">
+        <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-white mb-6">
+          Learn React by Building
+        </h1>
+        <p className="text-lg sm:text-xl text-gray-300 dark:text-gray-400 mb-8 max-w-2xl">
+          Explore three practical React applications demonstrating modern patterns, custom hooks, and API integration. From weather forecasts to GIF searches, learn by doing.
+        </p>
+        <div className="flex flex-wrap gap-4">
+          <a
+            href="/quickstart"
+            className="inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-lg text-[#20232a] bg-[#61DAFB] hover:bg-[#4fa8c5] transition-colors"
+          >
+            Get started
+          </a>
+          <a
+            href="/projects/weather-finder"
+            className="inline-flex items-center justify-center px-6 py-3 border border-white/30 text-base font-medium rounded-lg text-white bg-white/10 hover:bg-white/20 transition-colors"
+          >
+            Explore projects
+          </a>
+        </div>
+      </div>
+      <div className="lg:col-span-5 hidden lg:block">
+        <div className="relative">
+          <div className="absolute inset-0 bg-gradient-to-r from-[#61DAFB]/20 to-[#149ECA]/20 blur-3xl"></div>
+          <svg className="relative w-full h-auto" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="100" cy="100" r="80" stroke="#61DAFB" strokeWidth="2" opacity="0.3"/>
+            <circle cx="100" cy="100" r="60" stroke="#61DAFB" strokeWidth="2" opacity="0.5"/>
+            <circle cx="100" cy="100" r="40" stroke="#61DAFB" strokeWidth="2" opacity="0.7"/>
+            <circle cx="100" cy="100" r="5" fill="#61DAFB"/>
+            <ellipse cx="100" cy="100" rx="80" ry="30" stroke="#61DAFB" strokeWidth="2"/>
+            <ellipse cx="100" cy="100" rx="80" ry="30" stroke="#61DAFB" strokeWidth="2" transform="rotate(60 100 100)"/>
+            <ellipse cx="100" cy="100" rx="80" ry="30" stroke="#61DAFB" strokeWidth="2" transform="rotate(120 100 100)"/>
+          </svg>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div className="mt-16 mb-16 max-w-5xl mx-auto px-6">
+  <div className="mb-16">
+    <h2 className="text-2xl sm:text-3xl font-semibold text-gray-900 dark:text-white mb-4">Quick start</h2>
+    <p className="text-base text-gray-600 dark:text-gray-400 mb-8">Get up and running with any of the three projects in minutes</p>
+    
+    <Steps>
+      <Step title="Clone the repository">
+        Start by cloning the React Mini Projects repository to your local machine.
+        
+        ```bash
+        git clone https://github.com/AndrewHerrada/React-mini.git
+        cd React-mini
+        ```
+      </Step>
+      
+      <Step title="Choose a project">
+        Navigate to one of the three available projects:
+        
+        - **weather-finder** - Real-time weather forecasts with Open-Meteo API
+        - **gifs-app** - GIF search engine using Giphy API
+        - **hooks-app** - React Hooks demonstrations and patterns
+        
+        ```bash
+        cd weather-finder  # or gifs-app, or hooks-app
+        ```
+      </Step>
+      
+      <Step title="Install dependencies">
+        Each project uses pnpm for package management. Install dependencies:
+        
+        ```bash
+        pnpm install
+        ```
+      </Step>
+      
+      <Step title="Start development server">
+        Launch the development server and start exploring:
+        
+        ```bash
+        pnpm dev
+        ```
+        
+        Your application will be running at `http://localhost:5173`
+      </Step>
+    </Steps>
+  </div>
+
+  <div className="mb-16">
+    <h2 className="text-2xl sm:text-3xl font-semibold text-gray-900 dark:text-white mb-4">Explore projects</h2>
+    <p className="text-base text-gray-600 dark:text-gray-400 mb-8">Three fully-featured applications to learn from</p>
+    
+    <CardGroup cols={3}>
+      <Card title="Weather Finder" icon="cloud-sun" href="/projects/weather-finder">
+        Real-time weather forecasts using Open-Meteo API with geolocation search
+      </Card>
+      <Card title="GIFs App" icon="images" href="/projects/gifs-app">
+        Search and browse GIFs powered by Giphy API with smart caching
+      </Card>
+      <Card title="Hooks Demo" icon="bolt" href="/projects/hooks-demo">
+        Interactive demonstrations of useState, useEffect, and custom hooks
+      </Card>
+    </CardGroup>
+  </div>
+
+  <div className="mb-16">
+    <h2 className="text-2xl sm:text-3xl font-semibold text-gray-900 dark:text-white mb-4">Key features</h2>
+    <p className="text-base text-gray-600 dark:text-gray-400 mb-8">Modern React patterns and best practices</p>
+    
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="p-6 rounded-lg border border-gray-200 dark:border-[#27272a] bg-gray-50 dark:bg-[#1a1d27]">
+        <div className="flex items-center gap-3 mb-3">
+          <div className="w-10 h-10 rounded-lg bg-[#61DAFB]/10 flex items-center justify-center">
+            <svg className="w-6 h-6 text-[#61DAFB]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+            </svg>
+          </div>
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Custom Hooks</h3>
+        </div>
+        <p className="text-sm text-gray-600 dark:text-gray-400">
+          Learn to build reusable hooks for state management, data fetching, and side effects
+        </p>
+      </div>
+      
+      <div className="p-6 rounded-lg border border-gray-200 dark:border-[#27272a] bg-gray-50 dark:bg-[#1a1d27]">
+        <div className="flex items-center gap-3 mb-3">
+          <div className="w-10 h-10 rounded-lg bg-[#61DAFB]/10 flex items-center justify-center">
+            <svg className="w-6 h-6 text-[#61DAFB]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+            </svg>
+          </div>
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">API Integration</h3>
+        </div>
+        <p className="text-sm text-gray-600 dark:text-gray-400">
+          Real-world examples of fetching and managing data from external APIs
+        </p>
+      </div>
+      
+      <div className="p-6 rounded-lg border border-gray-200 dark:border-[#27272a] bg-gray-50 dark:bg-[#1a1d27]">
+        <div className="flex items-center gap-3 mb-3">
+          <div className="w-10 h-10 rounded-lg bg-[#61DAFB]/10 flex items-center justify-center">
+            <svg className="w-6 h-6 text-[#61DAFB]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01" />
+            </svg>
+          </div>
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Component Patterns</h3>
+        </div>
+        <p className="text-sm text-gray-600 dark:text-gray-400">
+          Reusable components with TypeScript interfaces and prop validation
+        </p>
+      </div>
+      
+      <div className="p-6 rounded-lg border border-gray-200 dark:border-[#27272a] bg-gray-50 dark:bg-[#1a1d27]">
+        <div className="flex items-center gap-3 mb-3">
+          <div className="w-10 h-10 rounded-lg bg-[#61DAFB]/10 flex items-center justify-center">
+            <svg className="w-6 h-6 text-[#61DAFB]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </div>
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">TypeScript</h3>
+        </div>
+        <p className="text-sm text-gray-600 dark:text-gray-400">
+          Full TypeScript support with type-safe props, interfaces, and API responses
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <div className="mb-16">
+    <h2 className="text-2xl sm:text-3xl font-semibold text-gray-900 dark:text-white mb-4">Learning paths</h2>
+    <p className="text-base text-gray-600 dark:text-gray-400 mb-8">Choose your learning journey</p>
+    
+    <CardGroup cols={2}>
+      <Card title="Component library" icon="layer-group" href="/components/overview">
+        Explore reusable components like SearchBar, CustomHeader, and display components
+      </Card>
+      <Card title="Custom hooks" icon="anchor" href="/hooks/overview">
+        Deep dive into useWeather, useGifs, and useCounter hook implementations
+      </Card>
+      <Card title="State management" icon="database" href="/examples/state-management">
+        Learn state patterns with useState, useRef, and local storage
+      </Card>
+      <Card title="API patterns" icon="plug" href="/examples/api-integration">
+        Master data fetching, caching, and error handling strategies
+      </Card>
+    </CardGroup>
+  </div>
+
+  <div className="p-8 rounded-2xl border border-gray-200 dark:border-[#27272a] bg-gradient-to-br from-gray-50 to-white dark:from-[#1a1d27] dark:to-[#0f1117]">
+    <div className="max-w-3xl">
+      <h2 className="text-2xl sm:text-3xl font-semibold text-gray-900 dark:text-white mb-4">Ready to start building?</h2>
+      <p className="text-base text-gray-600 dark:text-gray-400 mb-6">
+        Clone the repository and start exploring these React projects. Each application is fully functional and ready to customize.
+      </p>
+      <a
+        href="/installation"
+        className="inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-lg text-white bg-[#61DAFB] hover:bg-[#4fa8c5] transition-colors"
+      >
+        Installation guide
+      </a>
+    </div>
+  </div>
+</div>

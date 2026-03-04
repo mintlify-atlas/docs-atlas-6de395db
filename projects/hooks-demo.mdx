@@ -1,0 +1,373 @@
+---
+title: 'Hooks Demo'
+description: 'Interactive demonstrations of React hooks with a traffic light simulator'
+---
+
+## Overview
+
+Hooks Demo is a React + TypeScript application that showcases various React hooks through interactive examples. The project features a traffic light simulator that demonstrates the differences between `useState` and `useEffect` hooks with practical, visual examples.
+
+<CardGroup cols={2}>
+  <Card title="useState Demo" icon="toggle-on">
+    Manual traffic light control with state management
+  </Card>
+  <Card title="useEffect Demo" icon="rotate">
+    Automatic traffic light with countdown timer
+  </Card>
+  <Card title="Tailwind CSS" icon="palette">
+    Styled with Tailwind CSS v4 and animations
+  </Card>
+  <Card title="TypeScript" icon="code">
+    Type-safe hook implementations
+  </Card>
+</CardGroup>
+
+## Key Features
+
+- **Interactive Traffic Light**: Visual demonstration of state changes
+- **useState Example**: Manual light control with button clicks
+- **useEffect Example**: Automatic light transitions with countdown
+- **Visual Countdown**: Progress bar showing time until next transition
+- **Tailwind Animations**: Pulsing effects for active lights
+- **Type Safety**: TypeScript type definitions for light colors
+- **Gradient Background**: Modern UI with Tailwind gradients
+
+## Project Structure
+
+```
+hooks-app/
+├── src/
+│   ├── 01-useState/
+│   │   └── TrafficLight.tsx              # Manual traffic light
+│   ├── 02-useEffect/
+│   │   └── TrafficLightWithEffect.tsx    # Automatic traffic light
+│   ├── HooksApp.tsx                      # Main app component
+│   └── main.tsx                          # App entry point
+└── package.json
+```
+
+## How to Run
+
+<Steps>
+  <Step title="Install Dependencies">
+    ```bash
+    npm install
+    ```
+  </Step>
+  
+  <Step title="Start Development Server">
+    ```bash
+    npm run dev
+    ```
+  </Step>
+  
+  <Step title="Build for Production">
+    ```bash
+    npm run build
+    ```
+  </Step>
+</Steps>
+
+## useState Demo: Manual Traffic Light
+
+This component demonstrates `useState` for managing UI state with user interactions.
+
+```tsx TrafficLight.tsx
+import { useState } from "react";
+
+const colors = {
+  red: "bg-red-500 animate-pulse",
+  yellow: "bg-yellow-500 animate-pulse",
+  green: "bg-green-500 animate-pulse",
+};
+
+type TrafficLightColor = keyof typeof colors;
+
+export const TrafficLight = () => {
+  const [light, setLight] = useState<TrafficLightColor>("red");
+
+  const handleColorChange = (color: TrafficLightColor) => {
+    setLight((prev) => {
+      console.log({ prev });
+      return color;
+    });
+  };
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-gray-900 to-slate-800 flex items-center justify-center p-4">
+      <div className="flex flex-col items-center space-y-8">
+        <div
+          className={`w-32 h-32 ${
+            light === "red" ? colors[light] : "bg-gray-500"
+          } rounded-full`}
+        ></div>
+        <div
+          className={`w-32 h-32 ${
+            light === "yellow" ? colors[light] : "bg-gray-500"
+          } rounded-full`}
+        ></div>
+        <div
+          className={`w-32 h-32 ${
+            light === "green" ? colors[light] : "bg-gray-500"
+          } rounded-full`}
+        ></div>
+
+        <div className="flex gap-2">
+          <button
+            className="bg-red-500 text-white px-4 py-2 rounded-md cursor-pointer"
+            onClick={() => handleColorChange("red")}
+          >
+            Rojo
+          </button>
+          <button
+            className="bg-yellow-500 text-white px-4 py-2 rounded-md cursor-pointer"
+            onClick={() => handleColorChange("yellow")}
+          >
+            Amarillo
+          </button>
+          <button
+            className="bg-green-500 text-white px-4 py-2 rounded-md cursor-pointer"
+            onClick={() => handleColorChange("green")}
+          >
+            Verde
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+```
+
+<Tabs>
+  <Tab title="Key Concepts">
+    - **useState**: Manages current light color state
+    - **Type Safety**: Uses TypeScript union type for valid colors
+    - **Conditional Styling**: Applies active/inactive styles based on state
+    - **Event Handlers**: Button clicks trigger state changes
+    - **Functional Updates**: Uses callback form to log previous state
+  </Tab>
+  
+  <Tab title="Learning Points">
+    - How to use `useState` with TypeScript
+    - Conditional class application in Tailwind
+    - Managing simple UI state
+    - Event handler patterns
+  </Tab>
+</Tabs>
+
+## useEffect Demo: Automatic Traffic Light
+
+This component demonstrates `useEffect` for side effects and automatic state transitions.
+
+```tsx TrafficLightWithEffect.tsx
+import { useState, useEffect } from "react";
+
+const colors = {
+  red: "bg-red-500 animate-pulse",
+  yellow: "bg-yellow-500 animate-pulse",
+  green: "bg-green-500 animate-pulse",
+};
+
+type TrafficLightColor = keyof typeof colors;
+
+export const TrafficLightWithEffect = () => {
+  const [light, setLight] = useState<TrafficLightColor>("red");
+  const [countdown, setCountdown] = useState(5);
+
+  // Countdown timer effect
+  useEffect(() => {
+    if (countdown === 0) return;
+    
+    const intervalId = setInterval(() => {
+      setCountdown((prev) => prev - 1);
+    }, 1000);
+
+    return () => {
+      clearInterval(intervalId);
+    };
+  }, [countdown]);
+
+  // Light transition effect
+  useEffect(() => {
+    if (countdown > 0) return;
+    
+    setCountdown(5);
+    
+    if (light === "red") {
+      setLight("green");
+      return;
+    }
+    if (light === "yellow") {
+      setLight("red");
+      return;
+    }
+    if (light === "green") {
+      setLight("yellow");
+      return;
+    }
+  }, [countdown, light]);
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-gray-900 to-slate-800 flex items-center justify-center p-4">
+      <div className="flex flex-col items-center space-y-8">
+        <h1 className="text-white text-2xl font-thin">
+          Semaforo con useEffect
+        </h1>
+        <h2 className="text-white text-xl">countdown: {countdown}</h2>
+        
+        {/* Progress bar */}
+        <div className="w-64 bg-gray-700 rounded-full h-2">
+          <div
+            className="bg-blue-500 h-2 rounded-full transition-all duration-1000 ease-linear"
+            style={{ width: `${(countdown / 5) * 100}%` }}
+          ></div>
+        </div>
+
+        <div
+          className={`w-32 h-32 ${
+            light === "red" ? colors[light] : "bg-gray-500"
+          } rounded-full`}
+        ></div>
+        <div
+          className={`w-32 h-32 ${
+            light === "yellow" ? colors[light] : "bg-gray-500"
+          } rounded-full`}
+        ></div>
+        <div
+          className={`w-32 h-32 ${
+            light === "green" ? colors[light] : "bg-gray-500"
+          } rounded-full`}
+        ></div>
+      </div>
+    </div>
+  );
+};
+```
+
+<Tabs>
+  <Tab title="Key Concepts">
+    - **useEffect for Timers**: Manages countdown with `setInterval`
+    - **Cleanup Functions**: Properly cleans up intervals to prevent memory leaks
+    - **Multiple Effects**: Separates countdown logic from light transition logic
+    - **Dependency Arrays**: Effects re-run when dependencies change
+    - **State Transitions**: Automatic state machine for light changes
+  </Tab>
+  
+  <Tab title="Effect Dependencies">
+    **Countdown Effect** depends on: `[countdown]`
+    - Runs when countdown changes
+    - Creates new interval
+    - Cleans up previous interval
+    
+    **Transition Effect** depends on: `[countdown, light]`
+    - Runs when countdown reaches 0 or light changes
+    - Resets countdown
+    - Transitions to next light color
+  </Tab>
+  
+  <Tab title="Learning Points">
+    - How to use `useEffect` with timers
+    - Importance of cleanup functions
+    - Managing multiple related effects
+    - Dependency array best practices
+    - Building state machines with hooks
+  </Tab>
+</Tabs>
+
+## Hook Comparison
+
+<CardGroup cols={2}>
+  <Card title="useState" icon="hand-pointer">
+    **Use When:**
+    - Managing UI state
+    - User interactions
+    - Form inputs
+    - Toggle states
+    
+    **Example:** Manual button clicks to change traffic light
+  </Card>
+  
+  <Card title="useEffect" icon="bolt">
+    **Use When:**
+    - Side effects
+    - Timers/intervals
+    - API calls
+    - Subscriptions
+    - DOM updates
+    
+    **Example:** Automatic countdown and light transitions
+  </Card>
+</CardGroup>
+
+## Type Safety with TypeScript
+
+The project demonstrates TypeScript best practices for hooks:
+
+```tsx
+// Define valid colors using object keys
+const colors = {
+  red: "bg-red-500 animate-pulse",
+  yellow: "bg-yellow-500 animate-pulse",
+  green: "bg-green-500 animate-pulse",
+};
+
+// Create type from object keys (recommended)
+type TrafficLightColor = keyof typeof colors;
+
+// Alternative: Define type explicitly
+// type TrafficLightColor = "red" | "yellow" | "green";
+
+// Use typed state
+const [light, setLight] = useState<TrafficLightColor>("red");
+```
+
+<Note>
+  Using `keyof typeof` ensures the type stays in sync with the actual colors object.
+</Note>
+
+## Styling with Tailwind CSS
+
+The project uses Tailwind CSS v4 features:
+
+- **Gradient Backgrounds**: `bg-gradient-to-br from-slate-900 via-gray-900 to-slate-800`
+- **Animations**: `animate-pulse` for active lights
+- **Responsive Design**: `min-h-screen`, `flex`, `items-center`, `justify-center`
+- **Spacing**: Consistent spacing with `space-y-8`, `gap-2`
+- **Transitions**: Smooth progress bar with `transition-all duration-1000`
+
+## Technologies Used
+
+- **React 19** - UI library with latest hooks
+- **TypeScript** - Type safety
+- **Tailwind CSS v4** - Utility-first styling
+- **Vite** - Build tool and dev server
+
+## Learning Objectives
+
+This project teaches:
+
+1. **useState Fundamentals**
+   - Managing component state
+   - Functional state updates
+   - Type-safe state with TypeScript
+
+2. **useEffect Mastery**
+   - Side effect management
+   - Cleanup functions
+   - Dependency arrays
+   - Timer/interval patterns
+
+3. **React Patterns**
+   - Conditional rendering
+   - Event handlers
+   - State machines
+   - Component composition
+
+4. **TypeScript Integration**
+   - Union types
+   - Type inference
+   - Generic hooks
+
+<Note>
+  This project is perfect for beginners learning React hooks and serves as a reference for common hook patterns.
+</Note>

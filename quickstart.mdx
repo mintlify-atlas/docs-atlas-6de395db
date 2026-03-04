@@ -1,80 +1,371 @@
 ---
-title: "Quickstart"
-description: "Start building awesome documentation in minutes"
+title: Quickstart
+description: Get up and running with the Weather Finder app in minutes
 ---
 
-## Get started in three steps
+## Overview
 
-Get your documentation site running locally and make your first customization.
-
-### Step 1: Set up your local environment
-
-<AccordionGroup>
-  <Accordion icon="copy" title="Clone your docs locally">
-    During the onboarding process, you created a GitHub repository with your docs content if you didn't already have one. You can find a link to this repository in your [dashboard](https://dashboard.mintlify.com).
-    
-    To clone the repository locally so that you can make and preview changes to your docs, follow the [Cloning a repository](https://docs.github.com/en/repositories/creating-and-managing-repositories/cloning-a-repository) guide in the GitHub docs.
-  </Accordion>
-  <Accordion icon="rectangle-terminal" title="Start the preview server">
-    1. Install the Mintlify CLI: `npm i -g mint`
-    2. Navigate to your docs directory and run: `mint dev`
-    3. Open `http://localhost:3000` to see your docs live!
-    
-    <Tip>Your preview updates automatically as you edit files.</Tip>
-  </Accordion>
-</AccordionGroup>
-
-### Step 2: Deploy your changes
-
-<AccordionGroup>
-  <Accordion icon="github" title="Install our GitHub app">
-    Install the Mintlify GitHub app from your [dashboard](https://dashboard.mintlify.com/settings/organization/github-app).
-    
-    Our GitHub app automatically deploys your changes to your docs site, so you don't need to manage deployments yourself.
-</Accordion>
-<Accordion icon="palette" title="Update your site name and colors">
-    For a first change, let's update the name and colors of your docs site.
-
-    1. Open `docs.json` in your editor.
-    2. Change the `"name"` field to your project name.
-    3. Update the `"colors"` to match your brand.
-    4. Save and see your changes instantly at `http://localhost:3000`.
-
-    <Tip>Try changing the primary color to see an immediate difference!</Tip>
-  </Accordion>
-</AccordionGroup>
-
-### Step 3: Go live
-
-<Accordion icon="rocket" title="Publish your docs">
-  1. Commit and push your changes.
-  2. Your docs will update and be live in moments!
-</Accordion>
-
-## Next steps
-
-Now that you have your docs running, explore these key features:
-
-<CardGroup cols={2}>
-
-<Card title="Write Content" icon="pen-to-square" href="/essentials/markdown">
-  Learn MDX syntax and start writing your documentation.
-</Card>
-
-<Card title="Customize style" icon="palette" href="/essentials/settings">
-  Make your docs match your brand perfectly.
-</Card>
-
-<Card title="Add code examples" icon="square-code" href="/essentials/code">
-  Include syntax-highlighted code blocks.
-</Card>
-
-<Card title="API documentation" icon="code" href="/api-reference/introduction">
-  Auto-generate API docs from OpenAPI specs.
-</Card>
-
-</CardGroup>
+This guide will walk you through setting up and running the **Weather Finder** project, a beautiful weather forecast application that demonstrates React hooks, TypeScript, and API integration.
 
 <Note>
-  **Need help?** See our [full documentation](https://mintlify.com/docs) or join our [community](https://mintlify.com/community).
+  The Weather Finder app uses the free Open-Meteo API, so no API key is required. You can start building immediately!
 </Note>
+
+## Setup
+
+<Steps>
+  <Step title="Navigate to the project">
+    From the repository root, navigate to the weather-finder directory:
+    
+    ```bash
+    cd weather-finder
+    ```
+  </Step>
+
+  <Step title="Install dependencies">
+    Install all required dependencies using pnpm:
+    
+    ```bash
+    pnpm install
+    ```
+    
+    This will install React 19, TypeScript, Vite, and all development dependencies including testing libraries.
+  </Step>
+
+  <Step title="Start the development server">
+    Launch the Vite development server:
+    
+    ```bash
+    pnpm dev
+    ```
+    
+    The app will be available at `http://localhost:5173`
+  </Step>
+</Steps>
+
+## Project Structure
+
+The Weather Finder app is organized as follows:
+
+```
+weather-finder/
+├── src/
+│   ├── components/      # React components
+│   ├── hooks/          # Custom React hooks
+│   ├── services/       # API service layer
+│   ├── types/          # TypeScript type definitions
+│   ├── utils/          # Helper functions
+│   ├── App.tsx         # Main app component
+│   └── main.tsx        # Application entry point
+├── package.json
+└── vite.config.ts
+```
+
+## Understanding the Code
+
+### Main App Component
+
+The `App.tsx` file demonstrates React best practices:
+
+```tsx src/App.tsx
+import { useWeather } from './hooks/useWeather';
+import { SearchBar } from './components/SearchBar';
+import { CurrentWeather } from './components/CurrentWeather';
+import { WeatherForecast } from './components/WeatherForecast';
+import { LoadingSpinner } from './components/LoadingSpinner';
+import { ErrorMessage } from './components/ErrorMessage';
+import './App.css';
+
+function App() {
+  const { status, data, error, search, savedCity } = useWeather();
+
+  return (
+    <div className="app">
+      <header className="app-header">
+        <h1 className="app-title">
+          <span aria-hidden="true">🌤️</span> Weather Finder
+        </h1>
+        <p className="app-subtitle">Consulta el clima de cualquier ciudad del mundo</p>
+      </header>
+
+      <main className="app-main">
+        <SearchBar
+          onSearch={search}
+          isLoading={status === 'loading'}
+          initialValue={savedCity}
+        />
+
+        <div className="app-content">
+          {status === 'idle' && (
+            <div className="idle-state">
+              <span className="idle-emoji" aria-hidden="true">🌍</span>
+              <p>Busca una ciudad para ver su pronóstico del tiempo</p>
+            </div>
+          )}
+
+          {status === 'loading' && <LoadingSpinner />}
+          {status === 'error' && error && <ErrorMessage message={error} />}
+          {status === 'success' && data && (
+            <>
+              <CurrentWeather data={data} />
+              <WeatherForecast daily={data.daily} />
+            </>
+          )}
+        </div>
+      </main>
+    </div>
+  );
+}
+
+export default App;
+```
+
+### Custom Hook: useWeather
+
+The app uses a custom hook to manage weather data and API calls:
+
+```tsx src/hooks/useWeather.ts
+import { useState, useCallback, useEffect } from 'react';
+import { geocodeCity, fetchWeather } from '../services/api';
+import type { WeatherData, Status } from '../types/weather';
+
+const LAST_CITY_KEY = 'weather-finder:last-city';
+
+export function useWeather() {
+  const [savedCity] = useState<string>(() => 
+    localStorage.getItem(LAST_CITY_KEY) ?? ''
+  );
+
+  const [state, setState] = useState<WeatherState>({
+    status: 'idle',
+    data: null,
+    error: null,
+  });
+
+  const search = useCallback(async (city: string) => {
+    const trimmed = city.trim();
+    if (!trimmed) return;
+
+    setState({ status: 'loading', data: null, error: null });
+
+    try {
+      const { name, latitude, longitude, country } = await geocodeCity(trimmed);
+      const { current, daily } = await fetchWeather(latitude, longitude);
+
+      localStorage.setItem(LAST_CITY_KEY, trimmed);
+
+      setState({
+        status: 'success',
+        data: { cityName: name, country, current, daily },
+        error: null,
+      });
+    } catch (err) {
+      setState({
+        status: 'error',
+        data: null,
+        error: err instanceof Error ? err.message : 'Ocurrió un error inesperado.',
+      });
+    }
+  }, []);
+
+  // Auto-search the last city on mount
+  useEffect(() => {
+    const lastCity = localStorage.getItem(LAST_CITY_KEY);
+    if (lastCity) search(lastCity);
+  }, [search]);
+
+  return { ...state, search, savedCity };
+}
+```
+
+<Tip>
+  This custom hook demonstrates several React patterns:
+  - State management with `useState`
+  - Async operations with `useCallback`
+  - Side effects with `useEffect`
+  - LocalStorage persistence
+  - Proper error handling
+</Tip>
+
+## Available Commands
+
+Here are all the commands you can use:
+
+<CodeGroup>
+```bash Development
+pnpm dev
+# Starts the Vite dev server with hot module replacement
+```
+
+```bash Build
+pnpm build
+# Compiles TypeScript and builds for production
+```
+
+```bash Preview
+pnpm preview
+# Preview the production build locally
+```
+
+```bash Lint
+pnpm lint
+# Run ESLint to check code quality
+```
+
+```bash Test
+pnpm exec vitest run
+# Run unit tests with Vitest
+```
+</CodeGroup>
+
+## Testing Your Changes
+
+The project includes Vitest for testing. Run the test suite:
+
+```bash
+pnpm exec vitest run
+```
+
+For watch mode during development:
+
+```bash
+pnpm exec vitest
+```
+
+<Note>
+  Tests are located in the `src/test/` directory and use `@testing-library/react` for component testing.
+</Note>
+
+## Building for Production
+
+When you're ready to deploy:
+
+<Steps>
+  <Step title="Build the project">
+    ```bash
+    pnpm build
+    ```
+    
+    This runs TypeScript compilation followed by Vite's production build.
+  </Step>
+
+  <Step title="Preview the build">
+    Test the production build locally:
+    
+    ```bash
+    pnpm preview
+    ```
+  </Step>
+
+  <Step title="Deploy">
+    The `dist/` folder contains your production-ready files. Deploy to any static hosting service:
+    
+    ```bash
+    # Example: Deploy to Vercel
+    pnpm add -g vercel
+    vercel login
+    vercel --prod
+    ```
+  </Step>
+</Steps>
+
+<Warning>
+  Make sure to test your production build with `pnpm preview` before deploying to catch any build-specific issues.
+</Warning>
+
+## Key Features to Explore
+
+### 1. City Search with Geocoding
+Type any city name to get weather data. The app uses the Open-Meteo Geocoding API to convert city names to coordinates.
+
+### 2. Current Weather Display
+See real-time weather conditions including temperature, humidity, wind speed, and weather codes.
+
+### 3. 7-Day Forecast
+View a weekly forecast with daily temperature ranges and weather conditions.
+
+### 4. LocalStorage Persistence
+The app remembers your last searched city and automatically loads it on return visits.
+
+### 5. Responsive Design
+Fully responsive layout that works beautifully on mobile, tablet, and desktop.
+
+## Try the Other Projects
+
+Once you're comfortable with Weather Finder, explore the other projects:
+
+<CardGroup cols={2}>
+  <Card title="Gifs App" icon="images">
+    Learn about API integration with Giphy, state management for search history, and grid layouts.
+    
+    ```bash
+    cd ../gifs-app
+    pnpm install && pnpm dev
+    ```
+  </Card>
+  
+  <Card title="Hooks App" icon="code">
+    Study React hooks in isolation with practical examples like a traffic light component.
+    
+    ```bash
+    cd ../hooks-app
+    pnpm install && pnpm dev
+    ```
+  </Card>
+</CardGroup>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Weather Finder Project" icon="cloud-sun" href="/projects/weather-finder">
+    Explore the Weather Finder project in detail
+  </Card>
+  
+  <Card title="API Integration" icon="plug" href="/examples/api-integration">
+    Deep dive into how the Open-Meteo API integration works
+  </Card>
+  
+  <Card title="Custom Hooks" icon="anchor" href="/hooks/overview">
+    Learn about custom hooks like useWeather and useGifs
+  </Card>
+  
+  <Card title="Component Patterns" icon="puzzle-piece" href="/examples/component-patterns">
+    Explore reusable component patterns and best practices
+  </Card>
+</CardGroup>
+
+## Troubleshooting
+
+### Port Already in Use
+If port 5173 is already in use, Vite will automatically try the next available port. You can also specify a custom port:
+
+```bash
+pnpm dev -- --port 3000
+```
+
+### Dependencies Issues
+If you encounter dependency resolution issues:
+
+```bash
+rm -rf node_modules pnpm-lock.yaml
+pnpm install
+```
+
+### TypeScript Errors
+Make sure your editor is using the workspace TypeScript version:
+
+```bash
+pnpm exec tsc --version
+```
+
+<Tip>
+  For VS Code users, press `Cmd/Ctrl + Shift + P` and select "TypeScript: Select TypeScript Version" → "Use Workspace Version"
+</Tip>
+
+## Get Help
+
+If you run into issues:
+
+- Check the [GitHub Issues](https://github.com/yourusername/react-mini-projects/issues)
+- Review the project README files
+- Open a new issue with details about your problem

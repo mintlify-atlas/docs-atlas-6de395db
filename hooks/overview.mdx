@@ -1,0 +1,106 @@
+---
+title: Custom Hooks Overview
+description: Learn about custom React hooks and how they enable reusable stateful logic across components
+---
+
+## What are Custom Hooks?
+
+Custom hooks are JavaScript functions that use React's built-in hooks to encapsulate and reuse stateful logic across multiple components. They follow the convention of starting with "use" and can call other hooks.
+
+### Benefits of Custom Hooks
+
+<CardGroup cols={2}>
+  <Card title="Reusability" icon="recycle">
+    Extract common logic into reusable functions that can be shared across components
+  </Card>
+  <Card title="Separation of Concerns" icon="layer-group">
+    Keep component logic separate from presentation code for better maintainability
+  </Card>
+  <Card title="Testability" icon="flask">
+    Test complex logic independently from component rendering
+  </Card>
+  <Card title="Composition" icon="puzzle-piece">
+    Combine multiple hooks to create more powerful abstractions
+  </Card>
+</CardGroup>
+
+## Available Custom Hooks
+
+This project includes three custom hooks that demonstrate different patterns and use cases:
+
+### useCounter
+
+A simple hook for managing counter state with increment, decrement, and reset functionality.
+
+<Card title="useCounter" icon="hashtag" href="/hooks/use-counter">
+  Manage counter state with built-in increment, decrement, and reset operations
+</Card>
+
+**Use cases:**
+- Simple counting functionality
+- Stepper components
+- Quantity selectors
+- Demo of basic custom hook patterns
+
+### useGifs
+
+A sophisticated hook for searching and caching GIF results from the Giphy API.
+
+<Card title="useGifs" icon="images" href="/hooks/use-gifs">
+  Search GIFs with built-in caching and search history tracking
+</Card>
+
+**Use cases:**
+- API data fetching and state management
+- Implementing client-side caching with useRef
+- Managing search history
+- Async operations in custom hooks
+
+### useWeather
+
+A comprehensive hook for fetching weather data with geolocation, localStorage persistence, and auto-loading.
+
+<Card title="useWeather" icon="cloud-sun" href="/hooks/use-weather">
+  Fetch weather data with automatic caching and state management
+</Card>
+
+**Use cases:**
+- Complex async workflows with multiple API calls
+- Local storage integration
+- Auto-loading data on component mount
+- Advanced error handling patterns
+
+## Custom Hook Best Practices
+
+<AccordionGroup>
+  <Accordion title="Always start with 'use'">
+    Custom hooks must follow the naming convention `useSomething` to indicate they follow the Rules of Hooks.
+  </Accordion>
+  
+  <Accordion title="Follow the Rules of Hooks">
+    - Only call hooks at the top level (not inside loops, conditions, or nested functions)
+    - Only call hooks from React functions (components or custom hooks)
+  </Accordion>
+  
+  <Accordion title="Return values consistently">
+    Return an object with named properties for better clarity, or an array for destructuring flexibility like useState.
+  </Accordion>
+  
+  <Accordion title="Handle side effects properly">
+    Use `useEffect` for side effects and `useCallback` for memoized functions to prevent unnecessary re-renders.
+  </Accordion>
+  
+  <Accordion title="Consider using TypeScript">
+    Add type definitions to your custom hooks for better developer experience and catch errors early.
+  </Accordion>
+</AccordionGroup>
+
+## Next Steps
+
+Explore each custom hook to understand different patterns and techniques:
+
+<CardGroup cols={3}>
+  <Card title="useCounter" icon="hashtag" href="/hooks/use-counter" />
+  <Card title="useGifs" icon="images" href="/hooks/use-gifs" />
+  <Card title="useWeather" icon="cloud-sun" href="/hooks/use-weather" />
+</CardGroup>

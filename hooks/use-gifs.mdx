@@ -1,0 +1,471 @@
+---
+title: useGifs
+description: A custom hook for searching GIFs from the Giphy API with built-in caching and search history
+---
+
+## Overview
+
+The `useGifs` hook provides a complete solution for searching and displaying GIFs from the Giphy API. It includes client-side caching, search history tracking, and optimized re-rendering through the use of `useRef` for cache storage.
+
+## Purpose
+
+This hook demonstrates intermediate to advanced patterns for:
+
+- Managing async API calls in custom hooks
+- Implementing client-side caching with `useRef`
+- Tracking and displaying search history
+- Handling multiple pieces of related state
+- Avoiding unnecessary API calls with cache lookups
+
+## API Reference
+
+### Hook Signature
+
+```typescript
+useGifs(): UseGifsReturn
+```
+
+### Parameters
+
+This hook takes no parameters.
+
+### Return Value
+
+The hook returns an object with the following properties:
+
+<ResponseField name="gifs" type="Gif[]" required>
+  Array of GIF objects returned from the current or cached search. Each `Gif` object contains:
+  - `id`: string - Unique identifier for the GIF
+  - `title`: string - Title or description of the GIF
+  - `url`: string - URL to the GIF image
+  - `width`: number - Width in pixels
+  - `height`: number - Height in pixels
+</ResponseField>
+
+<ResponseField name="handleSearch" type="(query: string) => Promise<void>" required>
+  Async function to search for GIFs. Validates the query, checks the cache, updates search history, and fetches from the API if needed.
+</ResponseField>
+
+<ResponseField name="previousTerms" type="string[]" required>
+  Array of up to 7 most recent search terms, ordered from newest to oldest.
+</ResponseField>
+
+<ResponseField name="handleTermClicked" type="(term: string) => Promise<void>" required>
+  Async function to load GIFs from a previous search term. Always uses cached data if available, otherwise fetches from the API.
+</ResponseField>
+
+## Implementation Details
+
+<CodeGroup>
+```typescript useGifs.tsx
+import { useRef, useState } from "react";
+import { getGifsByQuery } from "../actions/get-gifs-by-query.action";
+import type { Gif } from "../interfaces/gif.interface";
+
+export const useGifs = () => {
+  const [gifs, setGifs] = useState<Gif[]>([]);
+  const [previousTerms, setPreviousTerms] = useState<string[]>([]);
+
+  const gifsCache = useRef<Record<string, Gif[]>>({});
+
+  const handleTermClicked = async (term: string) => {
+    if (gifsCache.current[term]) {
+      setGifs(gifsCache.current[term]);
+      return;
+    }
+    const gifs = await getGifsByQuery(term);
+    setGifs(gifs);
+  };
+
+  const handleSearch = async (query: string = "") => {
+    query = query.trim().toLowerCase();
+    if (query.length === 0) return; // validate not empty
+
+    if (previousTerms.includes(query)) return;
+
+    setPreviousTerms([query, ...previousTerms].splice(0, 7));
+
+    const gifs = await getGifsByQuery(query);
+
+    setGifs(gifs);
+    gifsCache.current[query] = gifs;
+  };
+
+  return {
+    gifs,
+    handleSearch,
+    previousTerms,
+    handleTermClicked,
+  };
+};
+```
+
+```typescript gif.interface.ts
+export interface Gif {
+  id: string;
+  title: string;
+  url: string;
+  width: number;
+  height: number;
+}
+```
+
+```typescript get-gifs-by-query.action.ts
+import type { GiphyResponse } from "../interfaces/giphy.response";
+import type { Gif } from "../interfaces/gif.interface";
+import { giphyApi } from "../api/giphy.api";
+
+export const getGifsByQuery = async (query: string): Promise<Gif[]> => {
+  const response = await giphyApi<GiphyResponse>("/search", {
+    params: {
+      q: query,
+      limit: 10,
+    },
+  });
+  
+  return response.data.data.map((gif) => ({
+    id: gif.id,
+    title: gif.title,
+    url: gif.images.original.url,
+    width: Number(gif.images.original.width),
+    height: Number(gif.images.original.height),
+  }));
+};
+```
+</CodeGroup>
+
+### Key Implementation Details
+
+<AccordionGroup>
+  <Accordion title="Cache with useRef">
+    The hook uses `useRef` to store a cache object (`gifsCache.current`) that persists across re-renders without causing them. This is more efficient than using `useState` for cache storage, as updates to the ref don't trigger component re-renders.
+    
+    ```typescript
+    const gifsCache = useRef<Record<string, Gif[]>>({});
+    ```
+  </Accordion>
+  
+  <Accordion title="Query Normalization">
+    Search queries are normalized by trimming whitespace and converting to lowercase:
+    ```typescript
+    query = query.trim().toLowerCase();
+    ```
+    This ensures consistent cache lookups and prevents duplicate entries with different casing.
+  </Accordion>
+  
+  <Accordion title="Search History Management">
+    The hook maintains up to 7 most recent search terms:
+    ```typescript
+    setPreviousTerms([query, ...previousTerms].splice(0, 7));
+    ```
+    New terms are added to the front, and the array is limited to 7 items using `splice(0, 7)`.
+  </Accordion>
+  
+  <Accordion title="Duplicate Prevention">
+    The hook prevents duplicate searches by checking if a term already exists in `previousTerms`:
+    ```typescript
+    if (previousTerms.includes(query)) return;
+    ```
+  </Accordion>
+  
+  <Accordion title="Cache-First Loading">
+    When clicking a previous search term, the hook checks the cache first:
+    ```typescript
+    if (gifsCache.current[term]) {
+      setGifs(gifsCache.current[term]);
+      return;
+    }
+    ```
+    This provides instant results without making unnecessary API calls.
+  </Accordion>
+</AccordionGroup>
+
+## Usage Examples
+
+### Basic Usage
+
+<Tabs>
+  <Tab title="GifsApp Component">
+    ```tsx GifsApp.tsx
+    import { GifList } from "./gifs/components/GifList";
+    import { PreviousSearches } from "./gifs/components/PreviousSearches";
+    import { CustomHeader } from "./shared/components/CustomHeader";
+    import { SearchBar } from "./shared/components/SearchBar";
+    import { useGifs } from "./gifs/hooks/useGifs";
+
+    export const GifsApp = () => {
+      const { handleSearch, handleTermClicked, previousTerms, gifs } = useGifs();
+      
+      return (
+        <>
+          <CustomHeader
+            title="Buscador de Gifs"
+            description="Descubre y comparte el gif"
+          />
+          
+          <SearchBar 
+            placeholder="Busca lo que quieras" 
+            onQuery={handleSearch} 
+          />
+          
+          <PreviousSearches
+            searches={previousTerms}
+            onLabelClicked={handleTermClicked}
+          />
+          
+          <GifList gifs={gifs} />
+        </>
+      );
+    };
+    ```
+  </Tab>
+  
+  <Tab title="SearchBar Component">
+    ```tsx SearchBar.tsx
+    import { useState } from "react";
+
+    interface SearchBarProps {
+      placeholder: string;
+      onQuery: (query: string) => void;
+    }
+
+    export const SearchBar = ({ placeholder, onQuery }: SearchBarProps) => {
+      const [inputValue, setInputValue] = useState("");
+
+      const handleSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        onQuery(inputValue);
+        setInputValue("");
+      };
+
+      return (
+        <form onSubmit={handleSubmit}>
+          <input
+            type="text"
+            value={inputValue}
+            onChange={(e) => setInputValue(e.target.value)}
+            placeholder={placeholder}
+          />
+          <button type="submit">Search</button>
+        </form>
+      );
+    };
+    ```
+  </Tab>
+  
+  <Tab title="PreviousSearches Component">
+    ```tsx PreviousSearches.tsx
+    interface PreviousSearchesProps {
+      searches: string[];
+      onLabelClicked: (term: string) => void;
+    }
+
+    export const PreviousSearches = ({ 
+      searches, 
+      onLabelClicked 
+    }: PreviousSearchesProps) => {
+      if (searches.length === 0) return null;
+
+      return (
+        <div className="previous-searches">
+          <h3>Recent Searches:</h3>
+          <div className="tags">
+            {searches.map((term) => (
+              <button
+                key={term}
+                onClick={() => onLabelClicked(term)}
+                className="tag"
+              >
+                {term}
+              </button>
+            ))}
+          </div>
+        </div>
+      );
+    };
+    ```
+  </Tab>
+  
+  <Tab title="GifList Component">
+    ```tsx GifList.tsx
+    import type { Gif } from "../interfaces/gif.interface";
+
+    interface GifListProps {
+      gifs: Gif[];
+    }
+
+    export const GifList = ({ gifs }: GifListProps) => {
+      return (
+        <div className="gif-grid">
+          {gifs.map((gif) => (
+            <div key={gif.id} className="gif-item">
+              <img
+                src={gif.url}
+                alt={gif.title}
+                width={gif.width}
+                height={gif.height}
+                loading="lazy"
+              />
+            </div>
+          ))}
+        </div>
+      );
+    };
+    ```
+  </Tab>
+</Tabs>
+
+### Advanced Usage with Loading States
+
+```tsx GifSearchWithLoading.tsx
+import { useState } from "react";
+import { useGifs } from "./hooks/useGifs";
+
+export const GifSearchWithLoading = () => {
+  const { gifs, handleSearch, previousTerms, handleTermClicked } = useGifs();
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const handleSearchWithLoading = async (query: string) => {
+    setIsLoading(true);
+    setError(null);
+    
+    try {
+      await handleSearch(query);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to fetch GIFs");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleTermClickWithLoading = async (term: string) => {
+    setIsLoading(true);
+    setError(null);
+    
+    try {
+      await handleTermClicked(term);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to load GIFs");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return (
+    <div>
+      <SearchBar onQuery={handleSearchWithLoading} />
+      
+      {error && <div className="error">{error}</div>}
+      
+      <PreviousSearches
+        searches={previousTerms}
+        onLabelClicked={handleTermClickWithLoading}
+      />
+      
+      {isLoading ? (
+        <div>Loading GIFs...</div>
+      ) : (
+        <GifList gifs={gifs} />
+      )}
+    </div>
+  );
+};
+```
+
+## Design Patterns
+
+<Note>
+  This hook demonstrates several important React patterns:
+</Note>
+
+### 1. Separation of Concerns
+
+The hook separates data fetching logic from the API action:
+- `useGifs` manages state and caching
+- `getGifsByQuery` handles the API call and data transformation
+
+### 2. useRef for Non-Rendering State
+
+Using `useRef` for the cache prevents unnecessary re-renders:
+
+```typescript
+// ✅ Efficient: Doesn't cause re-renders
+const gifsCache = useRef<Record<string, Gif[]>>({});
+
+// ❌ Less efficient: Would cause re-render on every cache update
+const [gifsCache, setGifsCache] = useState<Record<string, Gif[]>>({});
+```
+
+### 3. Optimistic UI Updates
+
+Cached results are displayed immediately without loading states:
+
+```typescript
+if (gifsCache.current[term]) {
+  setGifs(gifsCache.current[term]); // Instant update
+  return;
+}
+```
+
+### 4. Data Normalization
+
+Query normalization ensures consistent behavior:
+
+```typescript
+query = query.trim().toLowerCase();
+```
+
+## Performance Considerations
+
+<AccordionGroup>
+  <Accordion title="Cache Efficiency">
+    The `useRef` cache persists for the component's lifetime, reducing API calls significantly. Once a search is performed, subsequent clicks on that term are instant.
+  </Accordion>
+  
+  <Accordion title="Memory Management">
+    The current implementation stores all search results indefinitely. For production, consider:
+    - Adding cache size limits
+    - Implementing LRU (Least Recently Used) eviction
+    - Clearing cache on unmount
+  </Accordion>
+  
+  <Accordion title="Search History Limit">
+    The 7-term limit prevents the history from growing unbounded while providing enough context for recent searches.
+  </Accordion>
+</AccordionGroup>
+
+## Potential Improvements
+
+<Warning>
+  Consider these enhancements for production use:
+</Warning>
+
+1. **Loading States**: Add loading indicators for better UX
+2. **Error Handling**: Add try-catch blocks and error states
+3. **Debouncing**: Implement search debouncing to reduce API calls
+4. **Cache Persistence**: Store cache in localStorage for cross-session persistence
+5. **Cache Expiration**: Add timestamps and expiration logic
+6. **TypeScript Return Type**: Define explicit return type interface
+
+```typescript
+interface UseGifsReturn {
+  gifs: Gif[];
+  handleSearch: (query: string) => Promise<void>;
+  previousTerms: string[];
+  handleTermClicked: (term: string) => Promise<void>;
+  isLoading: boolean;
+  error: string | null;
+}
+```
+
+## Related Hooks
+
+<CardGroup cols={2}>
+  <Card title="useCounter" icon="hashtag" href="/hooks/use-counter">
+    Learn about basic custom hook patterns
+  </Card>
+  <Card title="useWeather" icon="cloud-sun" href="/hooks/use-weather">
+    Explore more complex async patterns with useEffect
+  </Card>
+</CardGroup>

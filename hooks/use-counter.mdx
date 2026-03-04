@@ -1,0 +1,296 @@
+---
+title: useCounter
+description: A simple custom hook for managing counter state with increment, decrement, and reset operations
+---
+
+## Overview
+
+The `useCounter` hook provides a straightforward way to manage counter state with built-in operations for incrementing, decrementing, and resetting the value. It demonstrates the fundamental pattern of creating custom hooks in React.
+
+## Purpose
+
+This hook encapsulates counter logic that would otherwise be repeated across components. It's ideal for:
+
+- Stepper components
+- Quantity selectors in e-commerce apps
+- Pagination controls
+- Teaching basic custom hook patterns
+
+## API Reference
+
+### Hook Signature
+
+```typescript
+useCounter(initialValue?: number): UseCounterReturn
+```
+
+### Parameters
+
+<ParamField path="initialValue" type="number" default="10">
+  The starting value for the counter. If not provided, defaults to 10.
+</ParamField>
+
+### Return Value
+
+The hook returns an object with the following properties:
+
+<ResponseField name="counter" type="number" required>
+  The current counter value
+</ResponseField>
+
+<ResponseField name="handleAdd" type="() => void" required>
+  Function to increment the counter by 1
+</ResponseField>
+
+<ResponseField name="handleSubtract" type="() => void" required>
+  Function to decrement the counter by 1
+</ResponseField>
+
+<ResponseField name="handleReset" type="() => void" required>
+  Function to reset the counter to 5 (hardcoded reset value)
+</ResponseField>
+
+## Implementation Details
+
+The hook uses React's `useState` to manage the counter state. Here's the complete implementation:
+
+<CodeGroup>
+```typescript useCounter.tsx
+import { useState } from "react";
+
+export const useCounter = (initialValue: number = 10) => {
+  const [counter, setCounter] = useState(initialValue);
+  
+  const handleAdd = () => {
+    setCounter(counter + 1);
+  };
+  
+  const handleSubtract = () => {
+    setCounter((prevState) => prevState - 1);
+  };
+
+  const handleReset = () => {
+    setCounter(5);
+  };
+  
+  return {
+    // Values
+    counter,
+    // Methods / Actions
+    handleAdd,
+    handleSubtract,
+    handleReset,
+  };
+};
+```
+</CodeGroup>
+
+### Key Implementation Details
+
+<AccordionGroup>
+  <Accordion title="State Initialization">
+    The hook accepts an optional `initialValue` parameter with a default of 10. This value is passed directly to `useState` to set the initial counter state.
+  </Accordion>
+  
+  <Accordion title="Increment Pattern">
+    `handleAdd` uses direct state value: `setCounter(counter + 1)`. While this works for synchronous updates, it's not optimal for rapid consecutive updates.
+  </Accordion>
+  
+  <Accordion title="Decrement Pattern (Recommended)">
+    `handleSubtract` uses the functional updater pattern: `setCounter((prevState) => prevState - 1)`. This is the safer approach as it guarantees the correct previous state value, especially important for batched updates.
+  </Accordion>
+  
+  <Accordion title="Reset Behavior">
+    `handleReset` resets the counter to a hardcoded value of 5, not the `initialValue`. This could be modified to reset to `initialValue` if needed.
+  </Accordion>
+</AccordionGroup>
+
+## Usage Examples
+
+### Basic Usage
+
+<Tabs>
+  <Tab title="Component">
+    ```tsx MyCounterApp.tsx
+    import { useCounter } from "../hooks/useCounter";
+
+    export const MyCounterApp = () => {
+      const { counter, handleAdd, handleSubtract, handleReset } = useCounter(5);
+      
+      return (
+        <div style={{ 
+          display: "flex", 
+          flexDirection: "column", 
+          alignItems: "center" 
+        }}>
+          <h1>counter: {counter}</h1>
+          <div style={{ display: "flex", gap: "10px" }}>
+            <button onClick={handleAdd}>+1</button>
+            <button onClick={handleSubtract}>-1</button>
+            <button onClick={handleReset}>Reset</button>
+          </div>
+        </div>
+      );
+    };
+    ```
+  </Tab>
+  
+  <Tab title="Default Initial Value">
+    ```tsx
+    import { useCounter } from "../hooks/useCounter";
+
+    export const DefaultCounter = () => {
+      // Starts at 10 (default value)
+      const { counter, handleAdd, handleSubtract, handleReset } = useCounter();
+      
+      return (
+        <div>
+          <p>Count: {counter}</p>
+          <button onClick={handleAdd}>Increment</button>
+          <button onClick={handleSubtract}>Decrement</button>
+          <button onClick={handleReset}>Reset to 5</button>
+        </div>
+      );
+    };
+    ```
+  </Tab>
+  
+  <Tab title="Multiple Counters">
+    ```tsx
+    import { useCounter } from "../hooks/useCounter";
+
+    export const MultipleCounters = () => {
+      const likes = useCounter(0);
+      const views = useCounter(100);
+      const shares = useCounter(0);
+      
+      return (
+        <div>
+          <div>
+            <span>Likes: {likes.counter}</span>
+            <button onClick={likes.handleAdd}>Like</button>
+          </div>
+          <div>
+            <span>Views: {views.counter}</span>
+            <button onClick={views.handleAdd}>View</button>
+          </div>
+          <div>
+            <span>Shares: {shares.counter}</span>
+            <button onClick={shares.handleAdd}>Share</button>
+          </div>
+        </div>
+      );
+    };
+    ```
+  </Tab>
+</Tabs>
+
+### Advanced Usage
+
+```tsx QuantitySelector.tsx
+import { useCounter } from "../hooks/useCounter";
+
+interface QuantitySelectorProps {
+  min?: number;
+  max?: number;
+  onQuantityChange?: (quantity: number) => void;
+}
+
+export const QuantitySelector = ({ 
+  min = 1, 
+  max = 99,
+  onQuantityChange 
+}: QuantitySelectorProps) => {
+  const { counter, handleAdd, handleSubtract } = useCounter(min);
+  
+  const handleIncrement = () => {
+    if (counter < max) {
+      handleAdd();
+      onQuantityChange?.(counter + 1);
+    }
+  };
+  
+  const handleDecrement = () => {
+    if (counter > min) {
+      handleSubtract();
+      onQuantityChange?.(counter - 1);
+    }
+  };
+  
+  return (
+    <div className="quantity-selector">
+      <button 
+        onClick={handleDecrement} 
+        disabled={counter <= min}
+      >
+        -
+      </button>
+      <span>{counter}</span>
+      <button 
+        onClick={handleIncrement} 
+        disabled={counter >= max}
+      >
+        +
+      </button>
+    </div>
+  );
+};
+```
+
+## Potential Improvements
+
+<Warning>
+  The current implementation has a few areas that could be enhanced:
+</Warning>
+
+<AccordionGroup>
+  <Accordion title="Consistent Update Pattern">
+    Consider using the functional updater pattern for all state updates:
+    ```typescript
+    const handleAdd = () => {
+      setCounter((prevState) => prevState + 1);
+    };
+    ```
+  </Accordion>
+  
+  <Accordion title="Configurable Reset Value">
+    Make the reset value configurable:
+    ```typescript
+    const handleReset = () => {
+      setCounter(initialValue); // Reset to initial instead of hardcoded 5
+    };
+    ```
+  </Accordion>
+  
+  <Accordion title="Custom Step Value">
+    Allow custom increment/decrement amounts:
+    ```typescript
+    const handleAdd = (step: number = 1) => {
+      setCounter((prev) => prev + step);
+    };
+    ```
+  </Accordion>
+  
+  <Accordion title="Min/Max Boundaries">
+    Add optional min/max constraints:
+    ```typescript
+    export const useCounter = (
+      initialValue: number = 10,
+      { min, max }: { min?: number; max?: number } = {}
+    ) => {
+      // Add boundary checks in handlers
+    };
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Related Hooks
+
+<CardGroup cols={2}>
+  <Card title="useGifs" icon="images" href="/hooks/use-gifs">
+    Learn about managing async state and caching
+  </Card>
+  <Card title="useWeather" icon="cloud-sun" href="/hooks/use-weather">
+    Explore complex state management with multiple effects
+  </Card>
+</CardGroup>

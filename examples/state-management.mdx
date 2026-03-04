@@ -1,0 +1,357 @@
+---
+title: State Management Patterns
+description: Learn state management patterns using useState, useRef, and localStorage with real examples from the projects
+---
+
+## Overview
+
+State management is crucial for building interactive React applications. This guide covers three essential patterns found in the React Mini Projects:
+
+- **useState** for reactive component state
+- **useRef** for persistent values without re-renders
+- **localStorage** for data persistence across sessions
+
+## useState: Basic State Management
+
+### Simple State Updates
+
+The Traffic Light project demonstrates basic state management with `useState`:
+
+```tsx TrafficLight.tsx
+import { useState } from "react";
+
+type TrafficLightColor = "red" | "yellow" | "green";
+
+export const TrafficLight = () => {
+  const [light, setLight] = useState<TrafficLightColor>("red");
+
+  const handleColorChange = (color: TrafficLightColor) => {
+    setLight((prev) => {
+      console.log({ prev });
+      return color;
+    });
+  };
+
+  return (
+    <div>
+      <div className={`w-32 h-32 ${light === "red" ? "bg-red-500" : "bg-gray-500"}`} />
+      <button onClick={() => handleColorChange("red")}>Red</button>
+    </div>
+  );
+};
+```
+
+<Note>
+  The functional update form `setLight((prev) => ...)` is useful when you need access to the previous state value.
+</Note>
+
+### Multiple State Variables
+
+The GIFs App manages multiple related state values:
+
+```tsx useGifs.tsx
+import { useState } from "react";
+
+export const useGifs = () => {
+  const [gifs, setGifs] = useState<Gif[]>([]);
+  const [previousTerms, setPreviousTerms] = useState<string[]>([]);
+
+  const handleSearch = async (query: string) => {
+    query = query.trim().toLowerCase();
+    if (query.length === 0) return;
+
+    if (previousTerms.includes(query)) return;
+
+    // Keep only the 7 most recent searches
+    setPreviousTerms([query, ...previousTerms].splice(0, 7));
+
+    const gifs = await getGifsByQuery(query);
+    setGifs(gifs);
+  };
+
+  return { gifs, handleSearch, previousTerms };
+};
+```
+
+<Tip>
+  Keep related state together in the same `useState` call, or separate them if they update independently.
+</Tip>
+
+## useRef: Non-Reactive Persistence
+
+### Caching with useRef
+
+The GIFs App uses `useRef` to implement a cache that persists across renders without causing re-renders:
+
+```tsx useGifs.tsx
+import { useRef, useState } from "react";
+
+export const useGifs = () => {
+  const [gifs, setGifs] = useState<Gif[]>([]);
+  const gifsCache = useRef<Record<string, Gif[]>>({});
+
+  const handleTermClicked = async (term: string) => {
+    // Check cache first
+    if (gifsCache.current[term]) {
+      setGifs(gifsCache.current[term]);
+      return;
+    }
+    
+    // Fetch if not cached
+    const gifs = await getGifsByQuery(term);
+    setGifs(gifs);
+  };
+
+  const handleSearch = async (query: string) => {
+    const gifs = await getGifsByQuery(query);
+    setGifs(gifs);
+    
+    // Store in cache
+    gifsCache.current[query] = gifs;
+  };
+
+  return { gifs, handleSearch, handleTermClicked };
+};
+```
+
+<Accordion title="Why use useRef instead of useState for caching?">
+  Using `useRef` for the cache prevents unnecessary re-renders. When the cache updates, we don't need to re-render the component because the cache itself isn't displayed. Only when we update the `gifs` state (which IS displayed) should the component re-render.
+</Accordion>
+
+### useState vs useRef Comparison
+
+<CodeGroup>
+```tsx useState (causes re-renders)
+const [cache, setCache] = useState({});
+
+// Every cache update triggers a re-render
+setCache({ ...cache, [key]: value });
+```
+
+```tsx useRef (no re-renders)
+const cache = useRef({});
+
+// No re-render when cache updates
+cache.current[key] = value;
+```
+</CodeGroup>
+
+## localStorage: Cross-Session Persistence
+
+### Saving User Preferences
+
+The Weather Finder app remembers the last searched city using `localStorage`:
+
+```tsx useWeather.ts
+import { useState, useEffect, useCallback } from 'react';
+
+const LAST_CITY_KEY = 'weather-finder:last-city';
+
+export function useWeather() {
+  // Initialize from localStorage
+  const [savedCity] = useState<string>(() => 
+    localStorage.getItem(LAST_CITY_KEY) ?? ''
+  );
+
+  const [state, setState] = useState<WeatherState>({
+    status: 'idle',
+    data: null,
+    error: null,
+  });
+
+  const search = useCallback(async (city: string) => {
+    setState({ status: 'loading', data: null, error: null });
+
+    try {
+      const { name, latitude, longitude } = await geocodeCity(city);
+      const { current, daily } = await fetchWeather(latitude, longitude);
+
+      // Save to localStorage on successful search
+      localStorage.setItem(LAST_CITY_KEY, city);
+
+      setState({
+        status: 'success',
+        data: { cityName: name, current, daily },
+        error: null,
+      });
+    } catch (err) {
+      setState({
+        status: 'error',
+        data: null,
+        error: err instanceof Error ? err.message : 'Unknown error',
+      });
+    }
+  }, []);
+
+  // Auto-search the last city on mount
+  useEffect(() => {
+    const lastCity = localStorage.getItem(LAST_CITY_KEY);
+    if (lastCity) search(lastCity);
+  }, [search]);
+
+  return { ...state, search, savedCity };
+}
+```
+
+<Note>
+  Use lazy initialization `useState(() => localStorage.getItem(...))` to read from localStorage only once during the initial render.
+</Note>
+
+### localStorage Best Practices
+
+<Tabs>
+  <Tab title="Reading">
+    ```tsx
+    // Lazy initialization (recommended)
+    const [value, setValue] = useState(() => 
+      localStorage.getItem('key') ?? 'default'
+    );
+    
+    // Alternative: useEffect
+    useEffect(() => {
+      const saved = localStorage.getItem('key');
+      if (saved) setValue(saved);
+    }, []);
+    ```
+  </Tab>
+  
+  <Tab title="Writing">
+    ```tsx
+    const saveToStorage = (key: string, value: string) => {
+      try {
+        localStorage.setItem(key, value);
+      } catch (err) {
+        // Handle quota exceeded or other errors
+        console.error('Failed to save to localStorage:', err);
+      }
+    };
+    ```
+  </Tab>
+  
+  <Tab title="JSON Data">
+    ```tsx
+    // Saving objects
+    const saveData = (data: MyData) => {
+      localStorage.setItem('data', JSON.stringify(data));
+    };
+    
+    // Reading objects
+    const [data, setData] = useState<MyData | null>(() => {
+      const saved = localStorage.getItem('data');
+      return saved ? JSON.parse(saved) : null;
+    });
+    ```
+  </Tab>
+</Tabs>
+
+## Complex State Management
+
+### Combining Multiple Patterns
+
+The Weather Finder combines all three patterns:
+
+```tsx useWeather.ts
+export function useWeather() {
+  // useState for component state
+  const [state, setState] = useState<WeatherState>({
+    status: 'idle',
+    data: null,
+    error: null,
+  });
+
+  // localStorage for persistence
+  const [savedCity] = useState(() => 
+    localStorage.getItem(LAST_CITY_KEY) ?? ''
+  );
+
+  // useCallback for stable function reference
+  const search = useCallback(async (city: string) => {
+    setState({ status: 'loading', data: null, error: null });
+    
+    try {
+      const data = await fetchWeather(city);
+      localStorage.setItem(LAST_CITY_KEY, city);
+      setState({ status: 'success', data, error: null });
+    } catch (err) {
+      setState({ status: 'error', data: null, error: err.message });
+    }
+  }, []);
+
+  return { ...state, search, savedCity };
+}
+```
+
+## Custom Hooks Pattern
+
+### Extracting Reusable Logic
+
+The Counter hook demonstrates extracting state logic into a custom hook:
+
+```tsx useCounter.tsx
+import { useState } from "react";
+
+export const useCounter = (initialValue: number = 10) => {
+  const [counter, setCounter] = useState(initialValue);
+  
+  const handleAdd = () => {
+    setCounter(counter + 1);
+  };
+  
+  const handleSubtract = () => {
+    setCounter((prevState) => prevState - 1);
+  };
+
+  const handleReset = () => {
+    setCounter(initialValue);
+  };
+  
+  return {
+    counter,
+    handleAdd,
+    handleSubtract,
+    handleReset,
+  };
+};
+```
+
+### Using the Custom Hook
+
+```tsx MyComponent.tsx
+import { useCounter } from './hooks/useCounter';
+
+export const MyCounterApp = () => {
+  const { counter, handleAdd, handleSubtract, handleReset } = useCounter(5);
+
+  return (
+    <div>
+      <h1>Counter: {counter}</h1>
+      <button onClick={handleAdd}>+</button>
+      <button onClick={handleSubtract}>-</button>
+      <button onClick={handleReset}>Reset</button>
+    </div>
+  );
+};
+```
+
+<Tip>
+  Custom hooks make your state logic reusable across multiple components and easier to test in isolation.
+</Tip>
+
+## Key Takeaways
+
+1. **useState**: Use for values that should trigger re-renders when they change
+2. **useRef**: Use for values that need to persist but shouldn't trigger re-renders (caching, DOM refs, timers)
+3. **localStorage**: Use for data that should persist across browser sessions
+4. **Custom hooks**: Extract and reuse stateful logic across components
+5. **Functional updates**: Use `setState(prev => ...)` when new state depends on previous state
+
+## Related Resources
+
+<CardGroup cols={2}>
+  <Card title="Component Patterns" icon="puzzle-piece" href="/examples/component-patterns">
+    Learn about component composition and prop patterns
+  </Card>
+  <Card title="API Integration" icon="cloud" href="/examples/api-integration">
+    Discover patterns for fetching and managing API data
+  </Card>
+</CardGroup>

@@ -1,0 +1,333 @@
+---
+title: SearchBar
+description: Debounced search input component with two implementations
+---
+
+## Overview
+
+The SearchBar component provides a search input field with automatic debouncing. Two versions exist across the projects with slightly different features:
+
+- **GIFs App Version**: Debounced search with Enter key support
+- **Weather App Version**: Form-based search with loading state
+
+## GIFs App SearchBar
+
+### Purpose
+
+Provides a search input that automatically triggers searches after a 700ms delay, reducing API calls while typing. Also supports immediate search via Enter key or button click.
+
+**Location**: `gifs-app/src/shared/components/SearchBar.tsx`
+
+### Props
+
+<ParamField path="placeholder" type="string" default="Buscar">
+  Placeholder text displayed in the input field
+</ParamField>
+
+<ParamField path="onQuery" type="(query: string) => void" required>
+  Callback function invoked with the search query. Called after debounce delay or immediately on Enter/button click.
+</ParamField>
+
+### Features
+
+- **Debounced Search**: Automatically triggers search 700ms after typing stops
+- **Enter Key Support**: Press Enter to search immediately
+- **Search Button**: Click button to trigger immediate search
+- **State Management**: Internal state for input value
+
+### Usage Example
+
+```tsx
+import { SearchBar } from './components/SearchBar';
+
+function GifsApp() {
+  const handleSearch = (query: string) => {
+    console.log('Searching for:', query);
+    // Fetch GIFs from API
+  };
+
+  return (
+    <div>
+      <SearchBar 
+        placeholder="Buscar GIFs..."
+        onQuery={handleSearch}
+      />
+    </div>
+  );
+}
+```
+
+### Implementation Details
+
+<CodeGroup>
+
+```tsx Component Source
+import { useEffect, useState, type KeyboardEvent } from "react";
+
+interface Props {
+  placeholder?: string;
+  onQuery: (query: string) => void;
+}
+
+export const SearchBar = ({ placeholder = "Buscar", onQuery }: Props) => {
+  const [query, setQuery] = useState("");
+
+  // Debounce effect
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      onQuery(query);
+    }, 700);
+
+    return () => {
+      clearTimeout(timeoutId);
+    };
+  }, [query, onQuery]);
+
+  const handleSearch = () => {
+    onQuery(query);
+  };
+
+  const handleKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
+    if (event.key === "Enter") {
+      handleSearch();
+    }
+  };
+
+  return (
+    <div className="search-container">
+      <input
+        type="text"
+        placeholder={placeholder}
+        value={query}
+        onChange={(event) => setQuery(event.target.value)}
+        onKeyDown={handleKeyDown}
+      />
+      <button onClick={handleSearch}>Buscar</button>
+    </div>
+  );
+};
+```
+
+```tsx Usage in GifsPage
+import { SearchBar } from '../shared/components/SearchBar';
+import { useGifs } from './hooks/useGifs';
+
+export const GifsPage = () => {
+  const { searchGifs } = useGifs();
+
+  return (
+    <div>
+      <SearchBar 
+        placeholder="Buscar GIFs en Giphy"
+        onQuery={searchGifs}
+      />
+    </div>
+  );
+};
+```
+
+</CodeGroup>
+
+## Weather App SearchBar
+
+### Purpose
+
+Provides a form-based city search with loading state management and validation.
+
+**Location**: `weather-finder/src/components/SearchBar.tsx`
+
+### Props
+
+<ParamField path="onSearch" type="(city: string) => void" required>
+  Callback function invoked when the form is submitted with a valid city name
+</ParamField>
+
+<ParamField path="isLoading" type="boolean" required>
+  Controls the disabled state of inputs and changes button text to "Buscando…"
+</ParamField>
+
+<ParamField path="initialValue" type="string" default="">
+  Initial value for the search input field
+</ParamField>
+
+### Features
+
+- **Form Submission**: Proper HTML form with submit handling
+- **Loading State**: Disables input and button during API calls
+- **Input Validation**: Trims whitespace and requires non-empty input
+- **Accessibility**: ARIA labels and semantic HTML with `role="search"`
+- **Auto-complete Off**: Prevents browser suggestions for city names
+
+### Usage Example
+
+```tsx
+import { SearchBar } from './components/SearchBar';
+import { useState } from 'react';
+
+function WeatherApp() {
+  const [isLoading, setIsLoading] = useState(false);
+
+  const handleSearch = async (city: string) => {
+    setIsLoading(true);
+    try {
+      // Fetch weather data
+      const data = await fetchWeather(city);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return (
+    <SearchBar 
+      onSearch={handleSearch}
+      isLoading={isLoading}
+      initialValue="Madrid"
+    />
+  );
+}
+```
+
+### Implementation Details
+
+<CodeGroup>
+
+```tsx Component Source
+import { useState, type FormEvent } from 'react';
+
+interface Props {
+  onSearch: (city: string) => void;
+  isLoading: boolean;
+  initialValue?: string;
+}
+
+export function SearchBar({ onSearch, isLoading, initialValue = '' }: Props) {
+  const [value, setValue] = useState(initialValue);
+
+  function handleSubmit(e: FormEvent) {
+    e.preventDefault();
+    if (value.trim()) onSearch(value.trim());
+  }
+
+  return (
+    <form className="search-bar" onSubmit={handleSubmit} role="search">
+      <input
+        type="text"
+        className="search-input"
+        placeholder="Ingresa el nombre de una ciudad..."
+        value={value}
+        onChange={e => setValue(e.target.value)}
+        disabled={isLoading}
+        autoComplete="off"
+        aria-label="Ciudad"
+      />
+      <button
+        type="submit"
+        className="search-button"
+        disabled={isLoading || !value.trim()}
+        aria-label="Buscar ciudad"
+      >
+        {isLoading ? 'Buscando…' : 'Buscar'}
+      </button>
+    </form>
+  );
+}
+```
+
+```tsx Usage in WeatherApp
+import { SearchBar } from './components/SearchBar';
+import { useWeather } from './hooks/useWeather';
+
+export function App() {
+  const { searchCity, status } = useWeather();
+
+  return (
+    <div className="app">
+      <SearchBar 
+        onSearch={searchCity}
+        isLoading={status === 'loading'}
+      />
+    </div>
+  );
+}
+```
+
+</CodeGroup>
+
+## Key Differences
+
+<Tabs>
+  <Tab title="GIFs App">
+    - Debounced automatic search (700ms)
+    - Enter key triggers immediate search
+    - No form element
+    - No loading state management
+    - Optional placeholder prop
+  </Tab>
+  <Tab title="Weather App">
+    - Form-based submission only
+    - Loading state disables inputs
+    - Proper HTML form with submit event
+    - ARIA labels for accessibility
+    - Trims and validates input
+  </Tab>
+</Tabs>
+
+## TypeScript Interfaces
+
+<CodeGroup>
+
+```typescript GIFs App
+interface Props {
+  placeholder?: string;
+  onQuery: (query: string) => void;
+}
+```
+
+```typescript Weather App
+interface Props {
+  onSearch: (city: string) => void;
+  isLoading: boolean;
+  initialValue?: string;
+}
+```
+
+</CodeGroup>
+
+## Best Practices
+
+<AccordionGroup>
+  <Accordion title="When to use debouncing">
+    Use the GIFs App version when:
+    - You want to search as the user types
+    - API calls are lightweight and frequent
+    - User experience benefits from instant feedback
+  </Accordion>
+
+  <Accordion title="When to use form submission">
+    Use the Weather App version when:
+    - API calls are expensive or rate-limited
+    - You need explicit user confirmation
+    - Loading states need to be clearly communicated
+  </Accordion>
+
+  <Accordion title="Accessibility considerations">
+    - Always use `aria-label` for screen readers
+    - Use `role="search"` on search forms
+    - Disable inputs during loading to prevent double submissions
+    - Provide clear button text that changes based on state
+  </Accordion>
+</AccordionGroup>
+
+## Related Components
+
+<CardGroup cols={2}>
+  <Card title="CustomHeader" icon="heading" href="/components/custom-header">
+    Often used above SearchBar for page titles
+  </Card>
+  <Card title="GifList" icon="images" href="/components/gif-list">
+    Displays search results from GIFs SearchBar
+  </Card>
+  <Card title="WeatherDisplay" icon="cloud" href="/components/weather-display">
+    Displays search results from Weather SearchBar
+  </Card>
+</CardGroup>

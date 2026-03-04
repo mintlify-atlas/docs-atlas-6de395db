@@ -1,0 +1,506 @@
+---
+title: API Integration Patterns
+description: Master API integration with real examples showing data fetching, error handling, and caching from weather-finder and gifs-app
+---
+
+## Overview
+
+This guide demonstrates practical API integration patterns used in the Weather Finder and GIFs App projects:
+
+- Fetching data with proper error handling
+- Loading states and user feedback
+- Response transformation and type safety
+- Caching strategies for performance
+- Debouncing and request optimization
+
+## Basic API Calls
+
+### Simple Fetch Pattern
+
+The Weather Finder app demonstrates a clean API service layer:
+
+```tsx api.ts
+const GEO_API_BASE = 'https://geocoding-api.open-meteo.com/v1/search';
+
+export async function geocodeCity(city: string): Promise<GeocodingResult> {
+  const url = `${GEO_API_BASE}?name=${encodeURIComponent(city)}&count=1&language=es&format=json`;
+  const res = await fetch(url);
+
+  if (!res.ok) {
+    throw new Error('No se pudo conectar con el servicio de búsqueda.');
+  }
+
+  const data = await res.json();
+
+  if (!data.results?.length) {
+    throw new Error(`No se encontró ninguna ciudad con el nombre "${city}".`);
+  }
+
+  return data.results[0];
+}
+```
+
+<Note>
+  Always use `encodeURIComponent()` when adding user input to URL parameters to prevent injection attacks and handle special characters.
+</Note>
+
+### Sequential API Calls
+
+Sometimes you need data from one API to call another:
+
+```tsx api.ts
+export async function fetchWeather(
+  latitude: number,
+  longitude: number,
+): Promise<{ current: CurrentWeatherData; daily: DailyForecastData }> {
+  const url =
+    `${WEATHER_API_BASE}` +
+    `?latitude=${latitude}` +
+    `&longitude=${longitude}` +
+    `&current=temperature_2m,wind_speed_10m,weather_code` +
+    `&daily=temperature_2m_max,temperature_2m_min,weather_code` +
+    `&timezone=auto` +
+    `&forecast_days=7`;
+
+  const res = await fetch(url);
+
+  if (!res.ok) {
+    throw new Error('No se pudo obtener el pronóstico del tiempo.');
+  }
+
+  const data = await res.json();
+  return { current: data.current, daily: data.daily };
+}
+```
+
+<Tip>
+  Use template literals for complex URLs instead of URLSearchParams when the API requires literal commas (not encoded as `%2C`).
+</Tip>
+
+## Error Handling
+
+### Comprehensive Error Management
+
+The Weather Finder hook shows how to handle errors at multiple levels:
+
+```tsx useWeather.ts
+import { useState, useCallback } from 'react';
+
+interface WeatherState {
+  status: 'idle' | 'loading' | 'success' | 'error';
+  data: WeatherData | null;
+  error: string | null;
+}
+
+export function useWeather() {
+  const [state, setState] = useState<WeatherState>({
+    status: 'idle',
+    data: null,
+    error: null,
+  });
+
+  const search = useCallback(async (city: string) => {
+    const trimmed = city.trim();
+    if (!trimmed) return;
+
+    // Set loading state
+    setState({ status: 'loading', data: null, error: null });
+
+    try {
+      // Sequential API calls
+      const { name, latitude, longitude, country } = await geocodeCity(trimmed);
+      const { current, daily } = await fetchWeather(latitude, longitude);
+
+      // Success state
+      setState({
+        status: 'success',
+        data: { cityName: name, country, current, daily },
+        error: null,
+      });
+    } catch (err) {
+      // Error state with user-friendly message
+      setState({
+        status: 'error',
+        data: null,
+        error: err instanceof Error ? err.message : 'Ocurrió un error inesperado.',
+      });
+    }
+  }, []);
+
+  return { ...state, search };
+}
+```
+
+<Accordion title="Why use a status field instead of separate loading/error booleans?">
+  A single `status` field ensures mutually exclusive states. You can't be both loading and in error state at the same time. This prevents impossible states and makes the UI logic clearer:
+  
+  ```tsx
+  // Clean and explicit
+  if (status === 'loading') return <LoadingSpinner />;
+  if (status === 'error') return <ErrorMessage />;
+  if (status === 'success') return <WeatherData />;
+  
+  // vs. ambiguous boolean states
+  if (isLoading && hasError) return ???  // impossible state
+  ```
+</Accordion>
+
+### Displaying Errors to Users
+
+```tsx App.tsx
+import { useWeather } from './hooks/useWeather';
+import { ErrorMessage } from './components/ErrorMessage';
+
+function App() {
+  const { status, data, error, search } = useWeather();
+
+  return (
+    <div className="app">
+      <SearchBar onSearch={search} isLoading={status === 'loading'} />
+      
+      <div className="app-content">
+        {status === 'idle' && (
+          <div className="idle-state">
+            <p>Busca una ciudad para ver su pronóstico</p>
+          </div>
+        )}
+
+        {status === 'loading' && <LoadingSpinner />}
+
+        {status === 'error' && error && <ErrorMessage message={error} />}
+
+        {status === 'success' && data && <WeatherData data={data} />}
+      </div>
+    </div>
+  );
+}
+```
+
+## Response Transformation
+
+### Mapping API Data to Domain Models
+
+The GIFs App transforms Giphy's complex response into a simpler interface:
+
+```tsx get-gifs-by-query.action.ts
+import type { GiphyResponse } from "../interfaces/giphy.response";
+import type { Gif } from "../interfaces/gif.interface";
+import { giphyApi } from "../api/giphy.api";
+
+export const getGifsByQuery = async (query: string): Promise<Gif[]> => {
+  const response = await giphyApi<GiphyResponse>("/search", {
+    params: {
+      q: query,
+      limit: 10,
+    },
+  });
+  
+  // Transform complex API response to simple domain model
+  return response.data.data.map((gif) => ({
+    id: gif.id,
+    title: gif.title,
+    url: gif.images.original.url,
+    width: Number(gif.images.original.width),
+    height: Number(gif.images.original.height),
+  }));
+};
+```
+
+<Note>
+  Transform API responses at the boundary of your application. This keeps your components clean and protects them from API changes.
+</Note>
+
+### Type Safety with TypeScript
+
+<CodeGroup>
+```tsx gif.interface.ts (Domain Model)
+export interface Gif {
+  id: string;
+  title: string;
+  url: string;
+  width: number;
+  height: number;
+}
+```
+
+```tsx giphy.response.ts (API Response)
+export interface GiphyResponse {
+  data: {
+    id: string;
+    title: string;
+    images: {
+      original: {
+        url: string;
+        width: string;  // Note: API returns strings
+        height: string; // We convert to numbers
+      };
+    };
+  }[];
+  pagination: {
+    total_count: number;
+    count: number;
+    offset: number;
+  };
+}
+```
+</CodeGroup>
+
+## Caching Strategies
+
+### In-Memory Cache with useRef
+
+The GIFs App implements a client-side cache to avoid redundant API calls:
+
+```tsx useGifs.tsx
+import { useRef, useState } from "react";
+import { getGifsByQuery } from "../actions/get-gifs-by-query.action";
+
+export const useGifs = () => {
+  const [gifs, setGifs] = useState<Gif[]>([]);
+  const [previousTerms, setPreviousTerms] = useState<string[]>([]);
+  
+  // Cache persists across renders without causing re-renders
+  const gifsCache = useRef<Record<string, Gif[]>>({});
+
+  const handleTermClicked = async (term: string) => {
+    // Check cache first
+    if (gifsCache.current[term]) {
+      setGifs(gifsCache.current[term]);
+      return;
+    }
+    
+    // Fetch if not cached
+    const gifs = await getGifsByQuery(term);
+    setGifs(gifs);
+  };
+
+  const handleSearch = async (query: string = "") => {
+    query = query.trim().toLowerCase();
+    if (query.length === 0) return;
+
+    // Prevent duplicate searches
+    if (previousTerms.includes(query)) return;
+
+    // Track search history (keep last 7)
+    setPreviousTerms([query, ...previousTerms].splice(0, 7));
+
+    const gifs = await getGifsByQuery(query);
+    setGifs(gifs);
+    
+    // Store in cache
+    gifsCache.current[query] = gifs;
+  };
+
+  return {
+    gifs,
+    handleSearch,
+    previousTerms,
+    handleTermClicked,
+  };
+};
+```
+
+<Tip>
+  Use `useRef` for caching because it doesn't trigger re-renders when updated. Only update state when you need the UI to reflect changes.
+</Tip>
+
+### Cache Benefits
+
+<Tabs>
+  <Tab title="Performance">
+    Instant results for repeated searches:
+    ```tsx
+    // First search: API call
+    handleSearch('cats');  // 500ms network request
+    
+    // Click previous search: instant from cache
+    handleTermClicked('cats');  // 0ms, reads from cache
+    ```
+  </Tab>
+  
+  <Tab title="User Experience">
+    - No loading spinners for cached data
+    - Reduced API costs and rate limiting
+    - Works offline for previously loaded data
+  </Tab>
+  
+  <Tab title="Implementation">
+    ```tsx
+    // Cache structure
+    const cache = {
+      'cats': [...catGifs],
+      'dogs': [...dogGifs],
+      'funny': [...funnyGifs]
+    };
+    
+    // O(1) lookup time
+    const cachedResult = cache[searchTerm];
+    ```
+  </Tab>
+</Tabs>
+
+## Debouncing User Input
+
+### Automatic Search with Delay
+
+The SearchBar component implements debouncing to reduce API calls:
+
+```tsx SearchBar.tsx
+import { useEffect, useState } from "react";
+
+interface Props {
+  placeholder?: string;
+  onQuery: (query: string) => void;
+}
+
+export const SearchBar = ({ placeholder = "Buscar", onQuery }: Props) => {
+  const [query, setQuery] = useState("");
+
+  useEffect(() => {
+    // Wait 700ms after user stops typing
+    const timeoutId = setTimeout(() => {
+      onQuery(query);
+    }, 700);
+
+    // Cancel previous timer on each keystroke
+    return () => {
+      clearTimeout(timeoutId);
+    };
+  }, [query, onQuery]);
+
+  return (
+    <div className="search-container">
+      <input
+        type="text"
+        placeholder={placeholder}
+        value={query}
+        onChange={(event) => setQuery(event.target.value)}
+      />
+    </div>
+  );
+};
+```
+
+<Accordion title="How debouncing works">
+  Without debouncing, typing "cats" would trigger 4 API calls:
+  
+  ```
+  c     -> API call
+  ca    -> API call
+  cat   -> API call
+  cats  -> API call
+  ```
+  
+  With 700ms debouncing, only the final search happens:
+  
+  ```
+  c     -> timer started (700ms)
+  ca    -> timer cancelled and restarted
+  cat   -> timer cancelled and restarted
+  cats  -> timer cancelled and restarted
+  [700ms passes]
+  cats  -> API call (only one!)
+  ```
+</Accordion>
+
+## Complete Integration Example
+
+Here's how all patterns work together in the GIFs App:
+
+```tsx GifsApp.tsx
+import { GifList } from "./gifs/components/GifList";
+import { PreviousSearches } from "./gifs/components/PreviousSearches";
+import { SearchBar } from "./shared/components/SearchBar";
+import { useGifs } from "./gifs/hooks/useGifs";
+
+export const GifsApp = () => {
+  const { handleSearch, handleTermClicked, previousTerms, gifs } = useGifs();
+  
+  return (
+    <>
+      <CustomHeader
+        title="Buscador de Gifs"
+        description="Descubre y comparte el gif"
+      />
+      
+      {/* Debounced search */}
+      <SearchBar 
+        placeholder="Busca lo que quieras" 
+        onQuery={handleSearch} 
+      />
+      
+      {/* Click to load from cache */}
+      <PreviousSearches
+        searches={previousTerms}
+        onLabelClicked={handleTermClicked}
+      />
+      
+      {/* Display results */}
+      <GifList gifs={gifs} />
+    </>
+  );
+};
+```
+
+## Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Validation" icon="shield-check">
+    Always validate and sanitize user input before sending to APIs:
+    ```tsx
+    const trimmed = city.trim();
+    if (!trimmed) return;
+    
+    const encoded = encodeURIComponent(trimmed);
+    ```
+  </Card>
+  
+  <Card title="Error Messages" icon="circle-exclamation">
+    Provide user-friendly error messages:
+    ```tsx
+    if (!data.results?.length) {
+      throw new Error(
+        `No se encontró "${city}"`
+      );
+    }
+    ```
+  </Card>
+  
+  <Card title="Loading States" icon="spinner">
+    Always show loading indicators:
+    ```tsx
+    {status === 'loading' && 
+      <LoadingSpinner />}
+    ```
+  </Card>
+  
+  <Card title="Type Safety" icon="code">
+    Define interfaces for API responses:
+    ```tsx
+    interface ApiResponse {
+      data: DataType[];
+      error?: string;
+    }
+    ```
+  </Card>
+</CardGroup>
+
+## Performance Optimization Tips
+
+1. **Debounce search inputs** to reduce API calls (700ms is a good default)
+2. **Cache responses** using `useRef` for frequently accessed data
+3. **Validate before fetching** to avoid unnecessary requests
+4. **Transform at the boundary** to keep components simple
+5. **Use proper loading states** to provide user feedback
+6. **Handle errors gracefully** with user-friendly messages
+
+## Related Resources
+
+<CardGroup cols={2}>
+  <Card title="State Management" icon="database" href="/examples/state-management">
+    Learn about useState, useRef, and localStorage patterns
+  </Card>
+  <Card title="Component Patterns" icon="puzzle-piece" href="/examples/component-patterns">
+    Discover component composition and reusable patterns
+  </Card>
+</CardGroup>

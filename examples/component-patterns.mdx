@@ -1,0 +1,686 @@
+---
+title: Component Patterns
+description: Master React component patterns with real examples showing composition, prop drilling solutions, and reusable component design
+---
+
+## Overview
+
+This guide demonstrates practical component patterns used across the React Mini Projects:
+
+- Component composition and container patterns
+- Props interface design and type safety
+- Lifting state up and prop drilling solutions
+- Presentational vs. container components
+- Reusable component patterns
+
+## Component Composition
+
+### Container and Presentational Pattern
+
+The Weather Finder app demonstrates clean separation between logic and presentation:
+
+<CodeGroup>
+```tsx App.tsx (Container Component)
+import { useWeather } from './hooks/useWeather';
+import { SearchBar } from './components/SearchBar';
+import { CurrentWeather } from './components/CurrentWeather';
+import { WeatherForecast } from './components/WeatherForecast';
+import { LoadingSpinner } from './components/LoadingSpinner';
+import { ErrorMessage } from './components/ErrorMessage';
+
+function App() {
+  const { status, data, error, search, savedCity } = useWeather();
+
+  return (
+    <div className="app">
+      <header className="app-header">
+        <h1 className="app-title">Weather Finder</h1>
+        <p className="app-subtitle">Consulta el clima de cualquier ciudad</p>
+      </header>
+
+      <main className="app-main">
+        <SearchBar
+          onSearch={search}
+          isLoading={status === 'loading'}
+          initialValue={savedCity}
+        />
+
+        <div className="app-content">
+          {status === 'idle' && (
+            <div className="idle-state">
+              <p>Busca una ciudad para ver su pronóstico</p>
+            </div>
+          )}
+
+          {status === 'loading' && <LoadingSpinner />}
+          {status === 'error' && error && <ErrorMessage message={error} />}
+          {status === 'success' && data && (
+            <>
+              <CurrentWeather data={data} />
+              <WeatherForecast daily={data.daily} />
+            </>
+          )}
+        </div>
+      </main>
+    </div>
+  );
+}
+```
+
+```tsx SearchBar.tsx (Presentational Component)
+import { useState, type FormEvent } from 'react';
+
+interface Props {
+  onSearch: (city: string) => void;
+  isLoading: boolean;
+  initialValue?: string;
+}
+
+export function SearchBar({ onSearch, isLoading, initialValue = '' }: Props) {
+  const [value, setValue] = useState(initialValue);
+
+  function handleSubmit(e: FormEvent) {
+    e.preventDefault();
+    if (value.trim()) onSearch(value.trim());
+  }
+
+  return (
+    <form className="search-bar" onSubmit={handleSubmit}>
+      <input
+        type="text"
+        placeholder="Ingresa el nombre de una ciudad..."
+        value={value}
+        onChange={e => setValue(e.target.value)}
+        disabled={isLoading}
+      />
+      <button
+        type="submit"
+        disabled={isLoading || !value.trim()}
+      >
+        {isLoading ? 'Buscando…' : 'Buscar'}
+      </button>
+    </form>
+  );
+}
+```
+</CodeGroup>
+
+<Accordion title="Why separate container and presentational components?">
+  **Benefits:**
+  - **Testability**: Presentational components are easier to test (just pass props)
+  - **Reusability**: Same component can be used in different contexts
+  - **Maintainability**: Logic changes don't affect UI, and vice versa
+  - **Clarity**: Each component has a single, clear responsibility
+  
+  **Container components** (App.tsx):
+  - Manage state and side effects
+  - Handle business logic
+  - Pass data and callbacks to presentational components
+  
+  **Presentational components** (SearchBar.tsx):
+  - Receive data via props
+  - Render UI based on props
+  - Call callbacks when user interacts
+</Accordion>
+
+## Props Interface Design
+
+### Clear and Type-Safe Props
+
+Well-designed props interfaces make components intuitive to use:
+
+```tsx CustomHeader.tsx
+interface Props {
+  title: string;
+  description?: string;
+}
+
+export const CustomHeader = ({ title, description }: Props) => {
+  return (
+    <div className="content-center">
+      <h1>{title}</h1>
+      {description && <p>{description}</p>}
+    </div>
+  );
+};
+```
+
+<Note>
+  Use optional props (`description?: string`) for non-essential values, and provide sensible defaults for better developer experience.
+</Note>
+
+### Props with Default Values
+
+<Tabs>
+  <Tab title="Function Parameters">
+    ```tsx
+    interface Props {
+      placeholder?: string;
+      onQuery: (query: string) => void;
+    }
+    
+    export const SearchBar = ({ 
+      placeholder = "Buscar",  // Default value
+      onQuery 
+    }: Props) => {
+      // ...
+    };
+    ```
+  </Tab>
+  
+  <Tab title="Destructuring">
+    ```tsx
+    interface Props {
+      initialValue?: string;
+      onSearch: (city: string) => void;
+      isLoading: boolean;
+    }
+    
+    export function SearchBar({ 
+      onSearch, 
+      isLoading, 
+      initialValue = ''  // Default at destructuring
+    }: Props) {
+      const [value, setValue] = useState(initialValue);
+      // ...
+    }
+    ```
+  </Tab>
+  
+  <Tab title="defaultProps (Legacy)">
+    ```tsx
+    // Modern approach is better, but you might see this:
+    SearchBar.defaultProps = {
+      placeholder: "Buscar",
+      initialValue: ""
+    };
+    ```
+  </Tab>
+</Tabs>
+
+### Callback Props Pattern
+
+Components communicate with parents through callback props:
+
+```tsx PreviousSearches.tsx
+import type { FC } from "react";
+
+interface Props {
+  searches: string[];
+  onLabelClicked: (term: string) => void;
+}
+
+export const PreviousSearches: FC<Props> = ({ 
+  searches, 
+  onLabelClicked 
+}) => {
+  return (
+    <div className="previous-searches">
+      <h2>Búsquedas previas</h2>
+      <ul className="previous-searches-list">
+        {searches.map((term) => (
+          <li 
+            key={term} 
+            onClick={() => onLabelClicked(term)}
+          >
+            {term}
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+};
+```
+
+<Tip>
+  Name callback props with `on` prefix (`onClick`, `onSearch`, `onLabelClicked`) to clearly indicate they're event handlers.
+</Tip>
+
+## Lifting State Up
+
+### Sharing State Between Components
+
+The GIFs App demonstrates lifting state to share it between sibling components:
+
+```tsx GifsApp.tsx
+import { useGifs } from "./gifs/hooks/useGifs";
+import { GifList } from "./gifs/components/GifList";
+import { PreviousSearches } from "./gifs/components/PreviousSearches";
+import { SearchBar } from "./shared/components/SearchBar";
+
+export const GifsApp = () => {
+  // State lives in parent component
+  const { handleSearch, handleTermClicked, previousTerms, gifs } = useGifs();
+  
+  return (
+    <>
+      <CustomHeader
+        title="Buscador de Gifs"
+        description="Descubre y comparte el gif"
+      />
+      
+      {/* SearchBar updates the search state */}
+      <SearchBar 
+        placeholder="Busca lo que quieras" 
+        onQuery={handleSearch} 
+      />
+      
+      {/* PreviousSearches reads and updates state */}
+      <PreviousSearches
+        searches={previousTerms}
+        onLabelClicked={handleTermClicked}
+      />
+      
+      {/* GifList displays the results */}
+      <GifList gifs={gifs} />
+    </>
+  );
+};
+```
+
+<Accordion title="Why lift state up?">
+  When multiple components need to share the same state, move it to their closest common ancestor:
+  
+  ```
+  GifsApp (state lives here)
+  ├── SearchBar (updates state via handleSearch)
+  ├── PreviousSearches (updates state via handleTermClicked)
+  └── GifList (displays state via gifs prop)
+  ```
+  
+  This ensures:
+  - Single source of truth
+  - Synchronized state across components
+  - Predictable data flow (parent → children)
+</Accordion>
+
+## List Rendering Patterns
+
+### Rendering Arrays of Data
+
+The GifList component shows proper list rendering:
+
+```tsx GifList.tsx
+import type { FC } from "react";
+import type { Gif } from "../interfaces/gif.interface";
+
+interface Props {
+  gifs: Gif[];
+}
+
+export const GifList: FC<Props> = ({ gifs }) => {
+  return (
+    <div className="gifs-container">
+      {gifs.map((gif) => (
+        <div key={gif.id} className="gif-card">
+          <img src={gif.url} alt={gif.title} />
+          <h3>{gif.title}</h3>
+          <p>
+            {gif.width}x{gif.height}
+          </p>
+        </div>
+      ))}
+    </div>
+  );
+};
+```
+
+<Note>
+  Always use a unique `key` prop when rendering lists. Prefer IDs from your data over array indices.
+</Note>
+
+### Empty State Handling
+
+<CodeGroup>
+```tsx Conditional Rendering
+export const GifList: FC<Props> = ({ gifs }) => {
+  if (gifs.length === 0) {
+    return (
+      <div className="empty-state">
+        <p>No se encontraron resultados</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="gifs-container">
+      {gifs.map((gif) => (
+        <div key={gif.id} className="gif-card">
+          {/* ... */}
+        </div>
+      ))}
+    </div>
+  );
+};
+```
+
+```tsx Inline Conditional
+export const GifList: FC<Props> = ({ gifs }) => {
+  return (
+    <div className="gifs-container">
+      {gifs.length === 0 ? (
+        <p>No se encontraron resultados</p>
+      ) : (
+        gifs.map((gif) => (
+          <div key={gif.id} className="gif-card">
+            {/* ... */}
+          </div>
+        ))
+      )}
+    </div>
+  );
+};
+```
+</CodeGroup>
+
+## Reusable Component Patterns
+
+### Generic Components with TypeScript
+
+Make components flexible with generic types:
+
+```tsx SearchBar.tsx
+interface SearchBarProps<T = string> {
+  placeholder?: string;
+  onQuery: (query: T) => void;
+  transform?: (input: string) => T;
+}
+
+export function SearchBar<T = string>({
+  placeholder = "Buscar",
+  onQuery,
+  transform = (input) => input as T
+}: SearchBarProps<T>) {
+  const [query, setQuery] = useState("");
+  
+  const handleSearch = () => {
+    const transformed = transform(query);
+    onQuery(transformed);
+  };
+  
+  // ...
+}
+```
+
+### Compound Components
+
+The Traffic Light demonstrates state-based rendering:
+
+```tsx TrafficLight.tsx
+import { useState } from "react";
+
+type TrafficLightColor = "red" | "yellow" | "green";
+
+const colors = {
+  red: "bg-red-500 animate-pulse",
+  yellow: "bg-yellow-500 animate-pulse",
+  green: "bg-green-500 animate-pulse",
+};
+
+export const TrafficLight = () => {
+  const [light, setLight] = useState<TrafficLightColor>("red");
+
+  return (
+    <div className="traffic-light">
+      {/* Lights */}
+      <div className={`light ${
+        light === "red" ? colors.red : "bg-gray-500"
+      }`} />
+      <div className={`light ${
+        light === "yellow" ? colors.yellow : "bg-gray-500"
+      }`} />
+      <div className={`light ${
+        light === "green" ? colors.green : "bg-gray-500"
+      }`} />
+
+      {/* Controls */}
+      <div className="controls">
+        <button onClick={() => setLight("red")}>Rojo</button>
+        <button onClick={() => setLight("yellow")}>Amarillo</button>
+        <button onClick={() => setLight("green")}>Verde</button>
+      </div>
+    </div>
+  );
+};
+```
+
+## Conditional Rendering Patterns
+
+### Multiple Conditions
+
+<Tabs>
+  <Tab title="If-Return Early">
+    ```tsx
+    function WeatherDisplay({ status, data, error }: Props) {
+      if (status === 'loading') {
+        return <LoadingSpinner />;
+      }
+      
+      if (status === 'error') {
+        return <ErrorMessage message={error} />;
+      }
+      
+      if (status === 'idle') {
+        return <IdleState />;
+      }
+      
+      return <WeatherData data={data} />;
+    }
+    ```
+  </Tab>
+  
+  <Tab title="Switch-Case">
+    ```tsx
+    function WeatherDisplay({ status, data, error }: Props) {
+      switch (status) {
+        case 'loading':
+          return <LoadingSpinner />;
+        case 'error':
+          return <ErrorMessage message={error} />;
+        case 'idle':
+          return <IdleState />;
+        case 'success':
+          return <WeatherData data={data} />;
+        default:
+          return null;
+      }
+    }
+    ```
+  </Tab>
+  
+  <Tab title="Object Mapping">
+    ```tsx
+    const statusComponents = {
+      loading: <LoadingSpinner />,
+      error: <ErrorMessage message={error} />,
+      idle: <IdleState />,
+      success: <WeatherData data={data} />
+    };
+    
+    function WeatherDisplay({ status }: Props) {
+      return statusComponents[status];
+    }
+    ```
+  </Tab>
+  
+  <Tab title="Inline JSX">
+    ```tsx
+    function App() {
+      return (
+        <div className="app-content">
+          {status === 'idle' && <IdleState />}
+          {status === 'loading' && <LoadingSpinner />}
+          {status === 'error' && <ErrorMessage />}
+          {status === 'success' && <WeatherData />}
+        </div>
+      );
+    }
+    ```
+  </Tab>
+</Tabs>
+
+## Component Communication Patterns
+
+### Parent to Child (Props)
+
+```tsx
+// Parent passes data down
+<GifList gifs={gifs} />
+
+// Child receives via props
+interface Props {
+  gifs: Gif[];
+}
+export const GifList = ({ gifs }: Props) => { /* ... */ }
+```
+
+### Child to Parent (Callbacks)
+
+```tsx
+// Parent provides callback
+<SearchBar onQuery={handleSearch} />
+
+// Child calls it when needed
+const handleSearch = () => {
+  onQuery(query);  // Notify parent
+};
+```
+
+### Sibling Communication (Lift State Up)
+
+```tsx
+// Parent manages shared state
+function GifsApp() {
+  const [gifs, setGifs] = useState([]);
+  const [query, setQuery] = useState('');
+  
+  return (
+    <>
+      <SearchBar onQuery={setQuery} />      {/* Sibling 1 */}
+      <GifList gifs={gifs} />                {/* Sibling 2 */}
+    </>
+  );
+}
+```
+
+<Tip>
+  For complex state sharing, consider using Context API or state management libraries like Zustand or Redux.
+</Tip>
+
+## Composition vs. Inheritance
+
+React favors composition over inheritance. Here's how:
+
+<CodeGroup>
+```tsx Composition (Recommended)
+// Flexible and reusable
+function PageLayout({ header, content, sidebar }) {
+  return (
+    <div className="page">
+      <header>{header}</header>
+      <aside>{sidebar}</aside>
+      <main>{content}</main>
+    </div>
+  );
+}
+
+// Usage
+<PageLayout
+  header={<CustomHeader title="My App" />}
+  content={<WeatherData />}
+  sidebar={<PreviousSearches />}
+/>
+```
+
+```tsx Children Prop
+// Even more flexible
+function Card({ children, title }) {
+  return (
+    <div className="card">
+      <h2>{title}</h2>
+      <div className="card-content">
+        {children}
+      </div>
+    </div>
+  );
+}
+
+// Usage - can put anything inside
+<Card title="Weather">
+  <CurrentWeather data={data} />
+  <WeatherForecast forecast={forecast} />
+</Card>
+```
+</CodeGroup>
+
+## Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Single Responsibility" icon="bullseye">
+    Each component should do one thing well:
+    ```tsx
+    // Good: Focused components
+    <SearchBar />
+    <GifList />
+    <PreviousSearches />
+    
+    // Bad: One giant component
+    <GifsAppEverything />
+    ```
+  </Card>
+  
+  <Card title="Props Interface" icon="file-contract">
+    Always define clear prop types:
+    ```tsx
+    interface Props {
+      title: string;
+      description?: string;
+      onClick: () => void;
+    }
+    ```
+  </Card>
+  
+  <Card title="Meaningful Names" icon="tag">
+    Use descriptive component and prop names:
+    ```tsx
+    // Good
+    <PreviousSearches 
+      onLabelClicked={handleClick} />
+    
+    // Bad
+    <Comp1 onX={handler} />
+    ```
+  </Card>
+  
+  <Card title="Extract Logic" icon="code">
+    Move complex logic to custom hooks:
+    ```tsx
+    // Clean component
+    const { gifs, handleSearch } = 
+      useGifs();
+    
+    // vs. messy component with
+    // 100 lines of logic
+    ```
+  </Card>
+</CardGroup>
+
+## Key Takeaways
+
+1. **Separate concerns**: Container components handle logic, presentational components handle UI
+2. **Type your props**: Always use TypeScript interfaces for props
+3. **Lift state up**: Share state by moving it to the closest common ancestor
+4. **Use composition**: Build complex UIs from simple, reusable components
+5. **Name conventions**: Use `on` prefix for callbacks, descriptive names for components
+6. **Single responsibility**: Each component should have one clear purpose
+
+## Related Resources
+
+<CardGroup cols={2}>
+  <Card title="State Management" icon="database" href="/examples/state-management">
+    Learn about useState, useRef, and localStorage patterns
+  </Card>
+  <Card title="API Integration" icon="cloud" href="/examples/api-integration">
+    Master data fetching and error handling patterns
+  </Card>
+</CardGroup>

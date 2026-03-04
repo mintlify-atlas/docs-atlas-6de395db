@@ -1,0 +1,159 @@
+---
+title: Installation
+description: Learn how to install and set up React Mini Projects on your local machine
+---
+
+## Prerequisites
+
+Before you begin, ensure you have the following installed on your system:
+
+<Steps>
+  <Step title="Node.js">
+    Install Node.js version 18 or higher. You can download it from [nodejs.org](https://nodejs.org/).
+    
+    Verify your installation:
+    ```bash
+    node --version
+    ```
+  </Step>
+
+  <Step title="Package Manager">
+    Install pnpm (recommended) or use npm/yarn. This repository uses pnpm.
+    
+    ```bash
+    npm install -g pnpm
+    ```
+    
+    <Note>
+      While npm and yarn will work, the projects are optimized for pnpm. Some projects use pnpm-specific overrides for certain dependencies.
+    </Note>
+  </Step>
+
+  <Step title="Git">
+    Ensure Git is installed to clone the repository:
+    ```bash
+    git --version
+    ```
+  </Step>
+</Steps>
+
+## Clone the Repository
+
+Clone the React Mini Projects repository to your local machine:
+
+```bash
+git clone https://github.com/yourusername/react-mini-projects.git
+cd react-mini-projects
+```
+
+## Choose a Project
+
+The repository contains three independent React projects:
+
+<CardGroup cols={3}>
+  <Card title="Weather Finder" icon="cloud-sun">
+    A weather forecast app using the Open-Meteo API. Features include city search, current weather, and 7-day forecasts.
+  </Card>
+  
+  <Card title="Gifs App" icon="images">
+    A GIF search application with Giphy integration, search history, and responsive grid layout.
+  </Card>
+  
+  <Card title="Hooks App" icon="code">
+    Educational examples demonstrating React hooks including useState, useEffect, and custom hooks with a traffic light demo.
+  </Card>
+</CardGroup>
+
+Each project is located in its own directory:
+
+```
+react-mini-projects/
+├── weather-finder/
+├── gifs-app/
+└── hooks-app/
+```
+
+## Install Dependencies
+
+Navigate to the project you want to work with and install its dependencies:
+
+<CodeGroup>
+```bash weather-finder
+cd weather-finder
+pnpm install
+```
+
+```bash gifs-app
+cd gifs-app
+pnpm install
+```
+
+```bash hooks-app
+cd hooks-app
+pnpm install
+```
+</CodeGroup>
+
+<Tip>
+  Each project is completely independent with its own dependencies. You only need to install dependencies for the project(s) you want to use.
+</Tip>
+
+## Project Dependencies
+
+Here's what each project includes:
+
+### Weather Finder
+- **React 19.2.0** - Latest React version
+- **TypeScript 5.9.3** - Type safety
+- **Vite 8** - Fast build tool and dev server
+- **Vitest** - Unit testing framework
+- **Open-Meteo API** - Free weather data (no API key required)
+
+### Gifs App
+- **React 19.2.0** - Latest React version
+- **TypeScript 5.9.3** - Type safety
+- **Axios** - HTTP client for API requests
+- **Vite** (Rolldown variant) - Optimized build tool
+- **Vitest** - Testing with coverage support
+
+### Hooks App
+- **React 19.2.0** - Latest React version
+- **TypeScript 5.9.3** - Type safety
+- **Tailwind CSS 4.1** - Utility-first CSS framework
+- **Vite 8** - Fast build tool
+
+<Warning>
+  Some projects use specific Vite versions with pnpm overrides. If you encounter dependency issues, make sure you're using pnpm as your package manager.
+</Warning>
+
+## Verify Installation
+
+To verify everything is set up correctly, try running the development server:
+
+```bash
+pnpm dev
+```
+
+You should see output similar to:
+
+```
+  VITE v8.0.0-beta.13  ready in 500 ms
+
+  ➜  Local:   http://localhost:5173/
+  ➜  Network: use --host to expose
+  ➜  press h + enter to show help
+```
+
+Open your browser and navigate to `http://localhost:5173` to see your project running.
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Quickstart Guide" icon="rocket" href="/quickstart">
+    Follow our quickstart guide to build and run your first project
+  </Card>
+  
+  <Card title="Explore Projects" icon="folder-tree" href="/projects/weather-finder">
+    Deep dive into each project's features and architecture
+  </Card>
+</CardGroup>

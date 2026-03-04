@@ -1,0 +1,374 @@
+---
+title: 'Weather Finder'
+description: 'A weather application that fetches current weather and 7-day forecasts using the Open-Meteo API'
+---
+
+## Overview
+
+Weather Finder is a React + TypeScript application that allows users to search for any city worldwide and view its current weather conditions and 7-day forecast. The app uses the Open-Meteo API for weather data and includes features like localStorage persistence and comprehensive error handling.
+
+<CardGroup cols={2}>
+  <Card title="Custom Hooks" icon="hook">
+    Implements `useWeather` hook for state management
+  </Card>
+  <Card title="API Integration" icon="cloud">
+    Integrates with Open-Meteo Geocoding and Weather APIs
+  </Card>
+  <Card title="TypeScript" icon="code">
+    Fully typed with TypeScript for type safety
+  </Card>
+  <Card title="Testing" icon="flask">
+    Includes unit tests with Vitest and Testing Library
+  </Card>
+</CardGroup>
+
+## Key Features
+
+- **City Search**: Search for weather by city name with geocoding support
+- **Current Weather**: Display temperature, weather conditions, and wind speed
+- **7-Day Forecast**: Shows daily min/max temperatures with weather icons
+- **Persistent State**: Remembers last searched city using localStorage
+- **Auto-load**: Automatically loads weather for the last searched city on mount
+- **Loading States**: Visual feedback during API calls
+- **Error Handling**: User-friendly error messages for failed requests
+
+## Project Structure
+
+```
+weather-finder/
+├── src/
+│   ├── components/
+│   │   ├── SearchBar.tsx          # Search input component
+│   │   ├── CurrentWeather.tsx     # Current weather display
+│   │   ├── WeatherForecast.tsx    # 7-day forecast component
+│   │   ├── LoadingSpinner.tsx     # Loading state component
+│   │   └── ErrorMessage.tsx       # Error display component
+│   ├── hooks/
+│   │   └── useWeather.ts          # Custom weather hook
+│   ├── services/
+│   │   └── api.ts                 # API service functions
+│   ├── types/
+│   │   └── weather.ts             # TypeScript type definitions
+│   ├── utils/
+│   │   └── weatherCodes.ts        # Weather code to emoji/description
+│   └── App.tsx                    # Main app component
+└── package.json
+```
+
+## How to Run
+
+<Steps>
+  <Step title="Install Dependencies">
+    ```bash
+    npm install
+    ```
+  </Step>
+  
+  <Step title="Start Development Server">
+    ```bash
+    npm run dev
+    ```
+  </Step>
+  
+  <Step title="Run Tests">
+    ```bash
+    npm run test
+    ```
+  </Step>
+  
+  <Step title="Build for Production">
+    ```bash
+    npm run build
+    ```
+  </Step>
+</Steps>
+
+<Note>
+  No API key required! The Open-Meteo API is free and doesn't require authentication.
+</Note>
+
+## Main Components
+
+### App Component
+
+The main application component orchestrates all child components and manages the overall state.
+
+```tsx App.tsx
+import { useWeather } from './hooks/useWeather';
+import { SearchBar } from './components/SearchBar';
+import { CurrentWeather } from './components/CurrentWeather';
+import { WeatherForecast } from './components/WeatherForecast';
+import { LoadingSpinner } from './components/LoadingSpinner';
+import { ErrorMessage } from './components/ErrorMessage';
+
+function App() {
+  const { status, data, error, search, savedCity } = useWeather();
+
+  return (
+    <div className="app">
+      <header className="app-header">
+        <h1 className="app-title">
+          <span aria-hidden="true">🌤️</span> Weather Finder
+        </h1>
+      </header>
+
+      <main className="app-main">
+        <SearchBar
+          onSearch={search}
+          isLoading={status === 'loading'}
+          initialValue={savedCity}
+        />
+
+        <div className="app-content">
+          {status === 'idle' && (
+            <div className="idle-state">
+              <p>Busca una ciudad para ver su pronóstico del tiempo</p>
+            </div>
+          )}
+
+          {status === 'loading' && <LoadingSpinner />}
+          {status === 'error' && error && <ErrorMessage message={error} />}
+          {status === 'success' && data && (
+            <>
+              <CurrentWeather data={data} />
+              <WeatherForecast daily={data.daily} />
+            </>
+          )}
+        </div>
+      </main>
+    </div>
+  );
+}
+```
+
+### SearchBar Component
+
+A controlled form component that handles user input and form submission.
+
+```tsx SearchBar.tsx
+import { useState, type FormEvent } from 'react';
+
+interface Props {
+  onSearch: (city: string) => void;
+  isLoading: boolean;
+  initialValue?: string;
+}
+
+export function SearchBar({ onSearch, isLoading, initialValue = '' }: Props) {
+  const [value, setValue] = useState(initialValue);
+
+  function handleSubmit(e: FormEvent) {
+    e.preventDefault();
+    if (value.trim()) onSearch(value.trim());
+  }
+
+  return (
+    <form className="search-bar" onSubmit={handleSubmit} role="search">
+      <input
+        type="text"
+        className="search-input"
+        placeholder="Ingresa el nombre de una ciudad..."
+        value={value}
+        onChange={e => setValue(e.target.value)}
+        disabled={isLoading}
+      />
+      <button type="submit" disabled={isLoading || !value.trim()}>
+        {isLoading ? 'Buscando…' : 'Buscar'}
+      </button>
+    </form>
+  );
+}
+```
+
+### CurrentWeather Component
+
+Displays the current weather conditions with temperature and weather description.
+
+```tsx CurrentWeather.tsx
+import type { WeatherData } from '../types/weather';
+import { getWeatherInfo } from '../utils/weatherCodes';
+
+interface Props {
+  data: WeatherData;
+}
+
+export function CurrentWeather({ data }: Props) {
+  const { cityName, country, current } = data;
+  const { description, emoji } = getWeatherInfo(current.weather_code);
+
+  return (
+    <section className="current-weather" aria-label="Clima actual">
+      <div className="city-info">
+        <h2 className="city-name">{cityName}</h2>
+        <span className="city-country">{country}</span>
+      </div>
+
+      <div className="weather-main">
+        <span className="weather-emoji" role="img" aria-label={description}>
+          {emoji}
+        </span>
+        <div className="temperature-block">
+          <span className="temperature">{Math.round(current.temperature_2m)}°C</span>
+          <span className="weather-description">{description}</span>
+        </div>
+      </div>
+
+      <div className="weather-details">
+        <div className="detail-item">
+          <span className="detail-icon">💨</span>
+          <span className="detail-label">Viento</span>
+          <span className="detail-value">{current.wind_speed_10m} km/h</span>
+        </div>
+      </div>
+    </section>
+  );
+}
+```
+
+## Custom Hooks
+
+### useWeather Hook
+
+The core hook that manages weather state, API calls, and localStorage persistence.
+
+```ts useWeather.ts
+import { useState, useCallback, useEffect } from 'react';
+import { geocodeCity, fetchWeather } from '../services/api';
+import type { WeatherData, Status } from '../types/weather';
+
+const LAST_CITY_KEY = 'weather-finder:last-city';
+
+interface WeatherState {
+  status: Status;
+  data: WeatherData | null;
+  error: string | null;
+}
+
+export function useWeather() {
+  const [savedCity] = useState<string>(() => 
+    localStorage.getItem(LAST_CITY_KEY) ?? ''
+  );
+
+  const [state, setState] = useState<WeatherState>({
+    status: 'idle',
+    data: null,
+    error: null,
+  });
+
+  const search = useCallback(async (city: string) => {
+    const trimmed = city.trim();
+    if (!trimmed) return;
+
+    setState({ status: 'loading', data: null, error: null });
+
+    try {
+      const { name, latitude, longitude, country } = await geocodeCity(trimmed);
+      const { current, daily } = await fetchWeather(latitude, longitude);
+
+      localStorage.setItem(LAST_CITY_KEY, trimmed);
+
+      setState({
+        status: 'success',
+        data: { cityName: name, country, current, daily },
+        error: null,
+      });
+    } catch (err) {
+      setState({
+        status: 'error',
+        data: null,
+        error: err instanceof Error ? err.message : 'Ocurrió un error inesperado.',
+      });
+    }
+  }, []);
+
+  // Auto-search the last city on mount
+  useEffect(() => {
+    const lastCity = localStorage.getItem(LAST_CITY_KEY);
+    if (lastCity) search(lastCity);
+  }, [search]);
+
+  return { ...state, search, savedCity };
+}
+```
+
+<Tabs>
+  <Tab title="Key Features">
+    - **State Management**: Manages loading, success, error, and idle states
+    - **LocalStorage**: Persists last searched city
+    - **Auto-load**: Automatically fetches weather for saved city on mount
+    - **Error Handling**: Comprehensive try-catch with user-friendly messages
+    - **Memoization**: Uses `useCallback` to prevent unnecessary re-renders
+  </Tab>
+  
+  <Tab title="API Flow">
+    1. User submits city name
+    2. `geocodeCity()` converts city name to coordinates
+    3. `fetchWeather()` gets weather data using coordinates
+    4. Data is stored in state and city name saved to localStorage
+    5. Components re-render with new data
+  </Tab>
+</Tabs>
+
+## API Services
+
+The application uses two Open-Meteo API endpoints:
+
+<CodeGroup>
+```ts Geocoding API
+export async function geocodeCity(city: string): Promise<GeocodingResult> {
+  const url = `${GEO_API_BASE}?name=${encodeURIComponent(city)}&count=1&language=es&format=json`;
+  const res = await fetch(url);
+
+  if (!res.ok) {
+    throw new Error('No se pudo conectar con el servicio de búsqueda.');
+  }
+
+  const data = await res.json();
+
+  if (!data.results?.length) {
+    throw new Error(`No se encontró ninguna ciudad con el nombre "${city}".`);
+  }
+
+  return data.results[0];
+}
+```
+
+```ts Weather API
+export async function fetchWeather(
+  latitude: number,
+  longitude: number,
+): Promise<{ current: CurrentWeatherData; daily: DailyForecastData }> {
+  const url =
+    `${WEATHER_API_BASE}` +
+    `?latitude=${latitude}` +
+    `&longitude=${longitude}` +
+    `&current=temperature_2m,wind_speed_10m,weather_code` +
+    `&daily=temperature_2m_max,temperature_2m_min,weather_code` +
+    `&timezone=auto` +
+    `&forecast_days=7`;
+
+  const res = await fetch(url);
+
+  if (!res.ok) {
+    throw new Error('No se pudo obtener el pronóstico del tiempo.');
+  }
+
+  const data = await res.json();
+  return { current: data.current, daily: data.daily };
+}
+```
+</CodeGroup>
+
+## Technologies Used
+
+- **React 19** - UI library
+- **TypeScript** - Type safety
+- **Vite** - Build tool and dev server
+- **Vitest** - Unit testing framework
+- **Testing Library** - Component testing utilities
+- **Open-Meteo API** - Weather data provider
+- **CSS3** - Styling
+
+<Note>
+  This project demonstrates best practices for React hooks, TypeScript integration, API integration, and error handling.
+</Note>
