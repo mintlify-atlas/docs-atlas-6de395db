@@ -1,0 +1,75 @@
+{
+  "projectType": "frontend",
+  "projectName": "React Mini Projects",
+  "projectDescription": "A collection of small React applications demonstrating hooks, API integration, and component patterns",
+  "theme": "palm",
+  "primaryColor": "#61DAFB",
+  "lightColor": "#149ECA",
+  "darkColor": "#087EA4",
+  "navigation": {
+    "groups": [
+      {
+        "group": "Get Started",
+        "pages": [
+          "introduction",
+          "installation",
+          "quickstart"
+        ]
+      },
+      {
+        "group": "Projects",
+        "pages": [
+          "projects/weather-finder",
+          "projects/gifs-app",
+          "projects/hooks-demo"
+        ]
+      },
+      {
+        "group": "Components",
+        "pages": [
+          "components/overview",
+          "components/search-bar",
+          "components/custom-header",
+          "components/weather-display",
+          "components/gif-list"
+        ]
+      },
+      {
+        "group": "Custom Hooks",
+        "pages": [
+          "hooks/overview",
+          "hooks/use-weather",
+          "hooks/use-gifs",
+          "hooks/use-counter"
+        ]
+      },
+      {
+        "group": "Examples",
+        "pages": [
+          "examples/state-management",
+          "examples/api-integration",
+          "examples/component-patterns"
+        ]
+      }
+    ]
+  },
+  "keyFeatures": [
+    "Weather forecast app with Open-Meteo API integration",
+    "GIF search application using Giphy API",
+    "React Hooks demonstrations (useState, useEffect)",
+    "Custom hooks for state management and data fetching",
+    "Reusable component architecture",
+    "TypeScript support across all projects"
+  ],
+  "publicApiSurface": [
+    "useWeather - Weather data fetching hook",
+    "useGifs - GIF search and caching hook",
+    "useCounter - Counter state management hook",
+    "SearchBar - Reusable search input component",
+    "CustomHeader - Header component with title and description",
+    "GifList - Grid display for GIF results",
+    "CurrentWeather - Weather data display component",
+    "WeatherForecast - Multi-day forecast component",
+    "TrafficLight - useState demonstration component"
+  ]
+}
